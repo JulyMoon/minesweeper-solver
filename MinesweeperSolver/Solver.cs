@@ -16,11 +16,6 @@ namespace MinesweeperSolver
             var window = new Window();
             if (!window.WindowFound)
                 return;
-
-            Thread.Sleep(100);
-            window.OpenCell(0, 0);
-            Thread.Sleep(10000);
-            Mouse.DoubleButtonClick();
         }
     }
 }

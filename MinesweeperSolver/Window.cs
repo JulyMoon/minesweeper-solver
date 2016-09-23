@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -11,18 +13,19 @@ namespace MinesweeperSolver
     public class Window
     {
         private const int mineSize = 16;
-        private const int xFieldAdjust = 22;
-        private const int yFieldAdjust = 108;
+        private const int xFieldAdjust = 15;
+        private const int yFieldAdjust = 101;
         private const int widthExcess = 26;
         private const int heightExcess = 112;
         private const string windowTitle = "Minesweeper";
 
         private bool windowFound;
         private int width, height;
+        private Rectangle bounds;
+        private Rectangle fieldBounds;
         private IntPtr handle;
-        private int wx, wy;
         private int mineCount = 99; // todo
-        
+
         public bool WindowFound => windowFound;
         public int FieldWidth => width;
         public int FieldHeight => height;
@@ -46,11 +49,9 @@ namespace MinesweeperSolver
             handle = process.MainWindowHandle;
             Initialize();
             BringToFront();
-            Console.WriteLine($"X: {wx}\nY: {wy}\nField width: {width}\nField height: {height}");
+            TakeScreenshot();
+            Console.WriteLine($"X: {bounds.X}\nY: {bounds.Y}\nField width: {width}\nField height: {height}");
         }
-        
-        private void SetMouseOverCell(int x, int y)
-            => Mouse.SetPosition(wx + xFieldAdjust + mineSize * x, wy + yFieldAdjust + mineSize * y);
 
         public void OpenCell(int x, int y)
         {
@@ -69,10 +70,33 @@ namespace MinesweeperSolver
             var rect = new WindowRectangle();
             GetWindowRect(handle, ref rect);
 
-            wx = rect.Left;
-            wy = rect.Top;
             width = (rect.Right - rect.Left - widthExcess) / mineSize;
             height = (rect.Bottom - rect.Top - heightExcess) / mineSize;
+            bounds = new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
+            fieldBounds = new Rectangle(bounds.X + xFieldAdjust, bounds.Y + yFieldAdjust, mineSize * width, mineSize * height);
+        }
+
+        private Bitmap TakeScreenshot()
+        {
+            var bmp = new Bitmap(fieldBounds.Width, fieldBounds.Height);
+
+            using (var gfx = Graphics.FromImage(bmp))
+                gfx.CopyFromScreen(new Point(fieldBounds.Left, fieldBounds.Top), Point.Empty, fieldBounds.Size);
+
+            bmp.Save(@"C:\Users\foxneSs\Desktop\asd.jpg", ImageFormat.Jpeg);
+            return bmp;
+        }
+
+        private void SetMouseOverCell(int x, int y)
+        {
+            FieldToScreen(ref x, ref y);
+            Mouse.SetPosition(x, y);
+        }
+
+        private void FieldToScreen(ref int x, ref int y)
+        {
+            x = fieldBounds.X + mineSize * x + mineSize / 2;
+            y = fieldBounds.Y + mineSize * y + mineSize / 2;
         }
 
         private void BringToFront()
