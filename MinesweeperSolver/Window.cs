@@ -23,8 +23,13 @@ namespace MinesweeperSolver
         private int width, height;
         private Rectangle bounds;
         private Rectangle fieldBounds;
+        private Bitmap screenshot;
         private IntPtr handle;
         private int mineCount = 99; // todo
+
+        private Cell[,] cells;
+        private CellContents[,] cellContents;
+        private double[,] cellBombChance;
 
         public bool WindowFound => windowFound;
         public int FieldWidth => width;
@@ -49,7 +54,7 @@ namespace MinesweeperSolver
             handle = process.MainWindowHandle;
             Initialize();
             BringToFront();
-            TakeScreenshot();
+            screenshot = TakeScreenshot();
             Console.WriteLine($"X: {bounds.X}\nY: {bounds.Y}\nField width: {width}\nField height: {height}");
         }
 
@@ -74,16 +79,27 @@ namespace MinesweeperSolver
             height = (rect.Bottom - rect.Top - heightExcess) / mineSize;
             bounds = new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
             fieldBounds = new Rectangle(bounds.X + xFieldAdjust, bounds.Y + yFieldAdjust, mineSize * width, mineSize * height);
+
+            cells = new Cell[width, height];
+            cellContents = new CellContents[width, height];
+            cellBombChance = new double[width, height];
+
+            for (int i = 0; i < width; i++)
+                for (int j = 0; j < height; j++)
+                {
+                    cells[i, j] = Cell.Closed;
+                    cellContents[i, j] = CellContents.Unknown;
+                    cellBombChance[i, j] = -1;
+                }
         }
 
         private Bitmap TakeScreenshot()
         {
             var bmp = new Bitmap(fieldBounds.Width, fieldBounds.Height);
-
             using (var gfx = Graphics.FromImage(bmp))
                 gfx.CopyFromScreen(new Point(fieldBounds.Left, fieldBounds.Top), Point.Empty, fieldBounds.Size);
 
-            bmp.Save(@"C:\Users\foxneSs\Desktop\asd.jpg", ImageFormat.Jpeg);
+            bmp.Save(@"C:\Users\foxneSs\Desktop\asd.png", ImageFormat.Png);
             return bmp;
         }
 
@@ -109,6 +125,16 @@ namespace MinesweeperSolver
                     return process;
 
             return null;
+        }
+
+        public enum CellContents
+        {
+            Empty, One, Two, Three, Four, Five, Six, Seven, Eight, Bomb, Unknown
+        }
+
+        public enum Cell
+        {
+            Opened, Closed, Flagged
         }
 
         //[DllImport("user32.dll", CharSet = CharSet.Unicode)]
