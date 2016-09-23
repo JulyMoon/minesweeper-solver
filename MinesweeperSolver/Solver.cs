@@ -51,8 +51,88 @@ namespace MinesweeperSolver
 
         public void Solve()
         {
-            window.OpenCell(random.Next(window.FieldWidth), random.Next(window.FieldHeight));
+            SimpleAlgorithm();
         }
+
+        private void SimpleAlgorithm()
+        {
+            while (!window.GameOver)
+            {
+                var change = false;
+                for (int x = 0; x < window.FieldWidth; x++)
+                    for (int y = 0; y < window.FieldHeight; y++)
+                        if (window.GetCell(x, y) == Window.Cell.Opened)
+                        {
+                            var cc = window.GetCellContents(x, y);
+                            if (IsNumber(cc))
+                            {
+                                var notOpenedNeighbors = GetValidNeighbors(new Point(x, y)).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
+                                if (notOpenedNeighbors.Count == ToInt(cc))
+                                    foreach (var neighbor in notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
+                                    {
+                                        window.FlagCell(neighbor);
+                                        Thread.Sleep(100);
+                                        change = true;
+                                    }
+                            }
+                        }
+
+                if (change)
+                {
+                    change = false;
+                    for (int x = 0; x < window.FieldWidth; x++)
+                        for (int y = 0; y < window.FieldHeight; y++)
+                            if (window.GetCell(x, y) == Window.Cell.Opened)
+                            {
+                                var cc = window.GetCellContents(x, y);
+                                var p = new Point(x, y);
+                                var neighbors = GetValidNeighbors(p);
+                                if (IsNumber(cc) && neighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged).Count() == ToInt(cc))
+                                {
+                                    foreach (var neighbor in neighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
+                                    {
+                                        window.MassOpenCell(p);
+                                        Thread.Sleep(100);
+                                        change = true;
+                                    }
+                                }
+                            }
+                }
+
+                if (!change)
+                {
+                    int xx, yy;
+                    bool bad;
+                    do
+                    {
+                        xx = random.Next(window.FieldWidth);
+                        yy = random.Next(window.FieldHeight);
+
+                        bad = window.GetCell(xx, yy) != Window.Cell.Closed;
+                    } while (bad);
+                    window.OpenCell(xx, yy);
+                    change = true;
+                }
+
+                window.Update();
+            }
+        }
+
+        private static bool IsNumber(Window.CellContents cc)
+            => Window.CellContents.One <= cc && cc <= Window.CellContents.Eight;
+
+        private static int ToInt(Window.CellContents cc)
+            => cc - Window.CellContents.Empty;
+
+        /*private void UpdateChances()
+        {
+            for (int x = 0; x < window.FieldWidth; x++)
+                for (int y = 0; y < window.FieldHeight; y++)
+                    if (window.GetCell(x, y) == Window.Cell.Closed)
+                    {
+
+                    }
+        }*/
 
         private bool IsValid(Point p)
             => p.X >= 0 && p.X < window.FieldWidth && p.Y >= 0 && p.Y < window.FieldHeight;

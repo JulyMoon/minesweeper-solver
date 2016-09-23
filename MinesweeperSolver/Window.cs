@@ -34,6 +34,18 @@ namespace MinesweeperSolver
         public int FieldHeight => height;
         public int BombCount => bombCount;
 
+        public bool GameOver
+        {
+            get
+            {
+                for (int x = 0; x < FieldWidth; x++)
+                    for (int y = 0; y < FieldHeight; y++)
+                        if (cells[x, y] == Cell.Opened && cellContents[x, y] == CellContents.Bomb)
+                            return true;
+                return false;
+            }
+        }
+
         public static Window GetInstance()
         {
             var process = GetProcess();
@@ -59,10 +71,17 @@ namespace MinesweeperSolver
             Update();
         }
 
+        public void FlagCell(Point p) => FlagCell(p.X, p.Y);
+        public void OpenCell(Point p) => OpenCell(p.X, p.Y);
+        public void MassOpenCell(Point p) => MassOpenCell(p.X, p.Y);
+        public Cell GetCell(Point p) => GetCell(p.X, p.Y);
+        public CellContents GetCellContents(Point p) => GetCellContents(p.X, p.Y);
+
         public void FlagCell(int x, int y)
         {
             SetMouseOverCell(x, y);
             Mouse.RightClick();
+            cells[x, y] = Cell.Flagged;
         }
 
         public void OpenCell(int x, int y)
@@ -142,7 +161,15 @@ namespace MinesweeperSolver
                 }
             }
             else if (color == Color.FromArgb(0, 0, 0))
-                cells[x, y] = Cell.Flagged;
+            {
+                if (screenshot.GetPixel(xx, yy) == Color.FromArgb(255, 255, 255))
+                    cells[x, y] = Cell.Flagged;
+                else
+                {
+                    cells[x, y] = Cell.Opened;
+                    cellContents[x, y] = CellContents.Bomb;
+                }
+            }
             else
             {
                 cells[x, y] = Cell.Opened;
@@ -163,12 +190,7 @@ namespace MinesweeperSolver
                 {
                     color = screenshot.GetPixel(xx + mineSize / 2, yy + mineSize / 2 + 1);
                     if (color == Color.FromArgb(0, 0, 0))
-                    {
-                        if (screenshot.GetPixel(xx + 6, yy + 6) == Color.FromArgb(255, 255, 255))
-                            cellContents[x, y] = CellContents.Bomb;
-                        else
-                            cellContents[x, y] = CellContents.Seven;
-                    }
+                        cellContents[x, y] = CellContents.Seven;
                     else if (color == Color.FromArgb(128, 128, 128))
                         cellContents[x, y] = CellContents.Eight;
                     else
@@ -218,7 +240,7 @@ namespace MinesweeperSolver
             return null;*/
 
             var process = Process.Start(@"C:\Users\foxneSs\Desktop\Sweeper.exe");
-            Thread.Sleep(100);
+            Thread.Sleep(200);
             return process;
         }
 
