@@ -17,9 +17,10 @@ namespace MinesweeperSolver
             if (!window.WindowFound)
                 return;
 
-            Thread.Sleep(2000);
-            Mouse.SetPosition(650, 350);
-            Mouse.LeftClick();
+            Thread.Sleep(100);
+            window.OpenCell(0, 0);
+            Thread.Sleep(10000);
+            Mouse.DoubleButtonClick();
         }
     }
 }

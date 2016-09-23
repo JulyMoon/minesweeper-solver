@@ -35,6 +35,13 @@ namespace MinesweeperSolver
         public static void RightClick()
             => Click(RightClickFlags);
 
+        public static void DoubleButtonClick()
+        {
+            Click(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_RIGHTDOWN);
+            Thread.Sleep(100);
+            Click(MOUSEEVENTF_LEFTUP | MOUSEEVENTF_RIGHTUP);
+        }
+
         public static void LeftDoubleClick()
         {
             LeftClick();

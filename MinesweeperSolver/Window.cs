@@ -11,6 +11,8 @@ namespace MinesweeperSolver
     public class Window
     {
         private const int mineSize = 16;
+        private const int xFieldAdjust = 22;
+        private const int yFieldAdjust = 108;
         private const int widthExcess = 26;
         private const int heightExcess = 112;
         private const string windowTitle = "Minesweeper";
@@ -18,11 +20,13 @@ namespace MinesweeperSolver
         private bool windowFound;
         private int width, height;
         private IntPtr handle;
-        private int x, y;
-
+        private int wx, wy;
+        private int mineCount = 99; // todo
+        
         public bool WindowFound => windowFound;
         public int FieldWidth => width;
         public int FieldHeight => height;
+        public int MineCount => mineCount;
 
         public Window()
         {
@@ -42,7 +46,22 @@ namespace MinesweeperSolver
             handle = process.MainWindowHandle;
             Initialize();
             BringToFront();
-            Console.WriteLine($"X: {x}\nY: {y}\nField width: {width}\nField height: {height}");
+            Console.WriteLine($"X: {wx}\nY: {wy}\nField width: {width}\nField height: {height}");
+        }
+        
+        private void SetMouseOverCell(int x, int y)
+            => Mouse.SetPosition(wx + xFieldAdjust + mineSize * x, wy + yFieldAdjust + mineSize * y);
+
+        public void OpenCell(int x, int y)
+        {
+            SetMouseOverCell(x, y);
+            Mouse.LeftClick();
+        }
+
+        public void MassOpenCell(int x, int y)
+        {
+            SetMouseOverCell(x, y);
+            Mouse.DoubleButtonClick();
         }
 
         private void Initialize()
@@ -50,8 +69,8 @@ namespace MinesweeperSolver
             var rect = new WindowRectangle();
             GetWindowRect(handle, ref rect);
 
-            x = rect.Left;
-            y = rect.Top;
+            wx = rect.Left;
+            wy = rect.Top;
             width = (rect.Right - rect.Left - widthExcess) / mineSize;
             height = (rect.Bottom - rect.Top - heightExcess) / mineSize;
         }
