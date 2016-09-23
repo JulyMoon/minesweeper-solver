@@ -22,11 +22,34 @@ namespace MinesweeperSolver
             Console.WriteLine(s);
         }*/
 
-        public void Solve()
+        private double[,] cellBombChance;
+
+        private Window window;
+
+        public static Solver GetInstance()
         {
             var window = Window.GetInstance();
             if (window == null)
-                return;
+                return null;
+
+            return new Solver(window);
+        }
+
+        private Solver(Window window)
+        {
+            this.window = window;
+
+            cellBombChance = new double[window.FieldWidth, window.FieldHeight];
+            for (int x = 0; x < window.FieldWidth; x++)
+                for (int y = 0; y < window.FieldHeight; y++)
+                {
+                    cellBombChance[x, y] = -1;
+                }
+        }
+
+        public void Solve()
+        {
+            window.OpenCell(15, 7);
         }
     }
 }

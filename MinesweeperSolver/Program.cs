@@ -7,8 +7,8 @@ namespace MinesweeperSolver
         static void Main(string[] args)
         {
             Console.Title = "Minesweeper Solver";
-            var solver = new Solver();
-            solver.Solve();
+            var solver = Solver.GetInstance();
+            solver?.Solve();
             Console.ReadLine();
         }
     }

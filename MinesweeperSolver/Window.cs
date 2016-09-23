@@ -54,6 +54,8 @@ namespace MinesweeperSolver
             Initialize();
             Console.WriteLine($"X: {bounds.X}\nY: {bounds.Y}\nField width: {width}\nField height: {height}");
             Thread.Sleep(200);
+            NewGame();
+            //Thread.Sleep(200);
             Update();
         }
 
@@ -108,6 +110,12 @@ namespace MinesweeperSolver
                     cells[i, j] = Cell.Closed;
                     cellContents[i, j] = CellContents.Bomb; // Kappa
                 }
+        }
+
+        private void NewGame()
+        {
+            Mouse.SetPosition(bounds.X + bounds.Width / 2, bounds.Y + 80);
+            Mouse.LeftClick();
         }
 
         private void ReadField()
