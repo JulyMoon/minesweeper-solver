@@ -9,8 +9,19 @@ using System.Threading.Tasks;
 
 namespace MinesweeperSolver
 {
-    class Solver
+    public class Solver
     {
+        /*private void PrintCell(int x, int y)
+        {
+            var cell = cells[x, y];
+            var s = $"cells[{x}, {y}] = {cell} | ";
+            if (cell == Cell.Opened)
+                s += $"cellContents[{x}, {y}] = {cellContents[x, y]}";
+            else
+                s += $"cellBombChance[{x}, {y}] = {cellBombChance[x, y]}";
+            Console.WriteLine(s);
+        }*/
+
         public void Solve()
         {
             var window = Window.GetInstance();

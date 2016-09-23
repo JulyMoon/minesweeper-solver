@@ -29,7 +29,6 @@ namespace MinesweeperSolver
 
         private Cell[,] cells;
         private CellContents[,] cellContents;
-        private double[,] cellBombChance;
 
         public int FieldWidth => width;
         public int FieldHeight => height;
@@ -53,11 +52,15 @@ namespace MinesweeperSolver
         {
             this.handle = handle;
             Initialize();
-            BringToFront();
-            Thread.Sleep(200);
-            screenshot = TakeScreenshot();
-            ReadField();
             Console.WriteLine($"X: {bounds.X}\nY: {bounds.Y}\nField width: {width}\nField height: {height}");
+            Thread.Sleep(200);
+            Update();
+        }
+
+        public void FlagCell(int x, int y)
+        {
+            SetMouseOverCell(x, y);
+            Mouse.RightClick();
         }
 
         public void OpenCell(int x, int y)
@@ -72,10 +75,21 @@ namespace MinesweeperSolver
             Mouse.DoubleButtonClick();
         }
 
+        public void Update()
+        {
+            screenshot = TakeScreenshot();
+            ReadField();
+        }
+
+        public Cell GetCell(int x, int y) => cells[x, y];
+
+        public CellContents GetCellContents(int x, int y) => cellContents[x, y];
+
         private void Initialize()
         {
             ShowWindow(handle, SW_SHOWNORMAL);
             ShowWindow(handle, SW_RESTORE);
+            BringToFront();
 
             var rect = new WindowRectangle();
             GetWindowRect(handle, ref rect);
@@ -87,14 +101,12 @@ namespace MinesweeperSolver
 
             cells = new Cell[width, height];
             cellContents = new CellContents[width, height];
-            cellBombChance = new double[width, height];
 
             for (int i = 0; i < width; i++)
                 for (int j = 0; j < height; j++)
                 {
                     cells[i, j] = Cell.Closed;
                     cellContents[i, j] = CellContents.Bomb; // Kappa
-                    cellBombChance[i, j] = -1;
                 }
         }
 
@@ -102,21 +114,7 @@ namespace MinesweeperSolver
         {
             for (int x = 0; x < width; x++)
                 for (int y = 0; y < height; y++)
-                {
                     ReadCell(x, y);
-                    PrintCell(x, y);
-                }
-        }
-
-        private void PrintCell(int x, int y)
-        {
-            var cell = cells[x, y];
-            var s = $"cells[{x}, {y}] = {cell} | ";
-            if (cell == Cell.Opened)
-                s += $"cellContents[{x}, {y}] = {cellContents[x, y]}";
-            else
-                s += $"cellBombChance[{x}, {y}] = {cellBombChance[x, y]}";
-            Console.WriteLine(s);
         }
 
         private void ReadCell(int x, int y)
