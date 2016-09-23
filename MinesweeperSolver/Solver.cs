@@ -23,8 +23,10 @@ namespace MinesweeperSolver
         }*/
 
         private double[,] cellBombChance;
-
         private Window window;
+        private static readonly Random random = new Random();
+        private static readonly Point[] pointNeighbors =
+            { Point.Up, Point.Down, Point.Left, Point.Right, Point.TopLeft, Point.TopRight, Point.BottomLeft, Point.BottomRight };
 
         public static Solver GetInstance()
         {
@@ -49,7 +51,22 @@ namespace MinesweeperSolver
 
         public void Solve()
         {
-            window.OpenCell(15, 7);
+            window.OpenCell(random.Next(window.FieldWidth), random.Next(window.FieldHeight));
+        }
+
+        private bool IsValid(Point p)
+            => p.X >= 0 && p.X < window.FieldWidth && p.Y >= 0 && p.Y < window.FieldHeight;
+
+        private List<Point> GetValidNeighbors(Point p)
+        {
+            var neighbors = new List<Point>();
+            foreach (var neighbor in pointNeighbors)
+            {
+                var n = p + neighbor;
+                if (IsValid(n))
+                    neighbors.Add(n);
+            }
+            return neighbors;
         }
     }
 }

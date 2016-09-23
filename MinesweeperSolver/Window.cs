@@ -25,14 +25,14 @@ namespace MinesweeperSolver
         private Rectangle fieldBounds;
         private Bitmap screenshot;
         private IntPtr handle;
-        private int mineCount = 99; // todo
+        private int bombCount = 99; // todo
 
         private Cell[,] cells;
         private CellContents[,] cellContents;
 
         public int FieldWidth => width;
         public int FieldHeight => height;
-        public int MineCount => mineCount;
+        public int BombCount => bombCount;
 
         public static Window GetInstance()
         {
@@ -181,7 +181,7 @@ namespace MinesweeperSolver
         {
             var bmp = new Bitmap(fieldBounds.Width, fieldBounds.Height);
             using (var gfx = Graphics.FromImage(bmp))
-                gfx.CopyFromScreen(new Point(fieldBounds.Left, fieldBounds.Top), Point.Empty, fieldBounds.Size);
+                gfx.CopyFromScreen(new System.Drawing.Point(fieldBounds.Left, fieldBounds.Top), System.Drawing.Point.Empty, fieldBounds.Size);
 
             bmp.Save(@"C:\Users\foxneSs\Desktop\asd.png", ImageFormat.Png);
             return bmp;
@@ -211,11 +211,15 @@ namespace MinesweeperSolver
 
         private static Process GetProcess()
         {
-            foreach (var process in Process.GetProcesses())
+            /*foreach (var process in Process.GetProcesses())
                 if (process.MainWindowTitle == windowTitle)
                     return process;
 
-            return null;
+            return null;*/
+
+            var process = Process.Start(@"C:\Users\foxneSs\Desktop\Sweeper.exe");
+            Thread.Sleep(100);
+            return process;
         }
 
         public enum CellContents
