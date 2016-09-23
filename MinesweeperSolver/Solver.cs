@@ -13,8 +13,8 @@ namespace MinesweeperSolver
     {
         public void Solve()
         {
-            var window = new Window();
-            if (!window.WindowFound)
+            var window = Window.GetInstance();
+            if (window == null)
                 return;
         }
     }
