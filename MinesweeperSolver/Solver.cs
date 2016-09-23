@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MinesweeperSolver
@@ -15,6 +16,10 @@ namespace MinesweeperSolver
             var window = new Window();
             if (!window.WindowFound)
                 return;
+
+            Thread.Sleep(2000);
+            Mouse.SetPosition(650, 350);
+            Mouse.LeftClick();
         }
     }
 }

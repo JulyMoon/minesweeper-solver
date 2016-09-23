@@ -41,6 +41,7 @@ namespace MinesweeperSolver
 
             handle = process.MainWindowHandle;
             Initialize();
+            BringToFront();
             Console.WriteLine($"X: {x}\nY: {y}\nField width: {width}\nField height: {height}");
         }
 
