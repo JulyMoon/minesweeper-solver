@@ -38,7 +38,7 @@ namespace MinesweeperSolver
         public static void DoubleButtonClick()
         {
             Click(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_RIGHTDOWN);
-            Thread.Sleep(100);
+            //Thread.Sleep(100);
             Click(MOUSEEVENTF_LEFTUP | MOUSEEVENTF_RIGHTUP);
         }
 

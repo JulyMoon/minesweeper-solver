@@ -71,7 +71,7 @@ namespace MinesweeperSolver
                                     foreach (var neighbor in notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
                                     {
                                         window.FlagCell(neighbor);
-                                        Thread.Sleep(100);
+                                        //Thread.Sleep(10);
                                         change = true;
                                     }
                             }
@@ -92,7 +92,7 @@ namespace MinesweeperSolver
                                     foreach (var neighbor in neighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
                                     {
                                         window.MassOpenCell(p);
-                                        Thread.Sleep(100);
+                                        //Thread.Sleep(10);
                                         change = true;
                                     }
                                 }
@@ -111,7 +111,6 @@ namespace MinesweeperSolver
                         bad = window.GetCell(xx, yy) != Window.Cell.Closed;
                     } while (bad);
                     window.OpenCell(xx, yy);
-                    change = true;
                 }
 
                 window.Update();

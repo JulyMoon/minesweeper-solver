@@ -233,11 +233,9 @@ namespace MinesweeperSolver
 
         private static Process GetProcess()
         {
-            /*foreach (var process in Process.GetProcesses())
-                if (process.MainWindowTitle == windowTitle)
-                    return process;
-
-            return null;*/
+            foreach (var pcs in Process.GetProcesses())
+                if (pcs.MainWindowTitle == windowTitle)
+                    pcs.Kill();
 
             var process = Process.Start(@"C:\Users\foxneSs\Desktop\Sweeper.exe");
             Thread.Sleep(200);
