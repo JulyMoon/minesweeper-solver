@@ -42,9 +42,9 @@ namespace MinesweeperSolver
 
         public void Solve()
         {
-            Console.WriteLine("Starting to solve...");
+            //Console.WriteLine("Starting to solve...");
             SimpleAlgorithm();
-            Console.WriteLine(window.Win ? "Yay! I won :D" : "Oops... I blew up :O");
+            //Console.WriteLine(window.Win ? "Yay! I won :D" : "Oops... I blew up :O");
         }
 
         private void SimpleAlgorithm()

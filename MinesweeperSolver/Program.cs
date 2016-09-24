@@ -15,14 +15,21 @@ namespace MinesweeperSolver
 
             var solver = new Solver(window);
 
+            var games = 0;
+            var wins = 0;
+
             while (true)
             {
-                Console.Clear();
+                //Console.Clear();
 
                 window.NewGame();
                 solver.Solve();
+                games++;
+                if (window.Win) wins++;
+                Console.Title = $"{wins}/{games} ({100d * wins / games}%)";
+                Console.WriteLine(window.Win ? "win" : "lose");
                 
-                Console.ReadLine();
+                //Console.ReadLine();
             }
         }
     }

@@ -96,6 +96,7 @@ namespace MinesweeperSolver
             GameOver = false;
             Mouse.SetPosition(bounds.X + bounds.Width / 2, bounds.Y + 80);
             Mouse.LeftClick();
+            Thread.Sleep(10);
         }
 
         public Cell GetCell(int x, int y) => cells[x, y];
@@ -190,18 +191,37 @@ namespace MinesweeperSolver
                     else if (color == Color.FromArgb(128, 128, 128))
                         cellContents[x, y] = CellContents.Eight;
                     else
-                        throw new Exception($"Unexpected color: {color}");
+                    {
+                        Environment.Exit(0);
+                        //throw new Exception($"Unexpected color: {color}");
+                    }
                 }
             }
         }
 
         private Bitmap TakeScreenshot()
         {
+            Thread.Sleep(10);
             var bmp = new Bitmap(bounds.Width, bounds.Height);
             using (var gfx = Graphics.FromImage(bmp))
                 gfx.CopyFromScreen(new System.Drawing.Point(bounds.Left, bounds.Top), System.Drawing.Point.Empty, bounds.Size);
 
-            bmp.Save(@"C:\Users\foxneSs\Desktop\asd.png", ImageFormat.Png);
+            bool exception;
+            do
+            {
+                exception = false;
+
+                try
+                {
+                    bmp.Save(@"C:\Users\foxneSs\Desktop\asd.png", ImageFormat.Png);
+                }
+                catch
+                {
+                    exception = true;
+                    Console.WriteLine("EXCEPTION");
+                }
+            } while (exception);
+            
             return bmp;
         }
 
