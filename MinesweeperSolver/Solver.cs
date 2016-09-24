@@ -95,16 +95,16 @@ namespace MinesweeperSolver
 
                 if (!change)
                 {
-                    int xx, yy;
-                    bool bad;
-                    do
-                    {
-                        xx = random.Next(window.FieldWidth);
-                        yy = random.Next(window.FieldHeight);
+                    var closedCells = new List<Point>();
 
-                        bad = window.GetCell(xx, yy) != Window.Cell.Closed;
-                    } while (bad);
-                    window.OpenCell(xx, yy);
+                    for (int x = 0; x < window.FieldWidth; x++)
+                        for (int y = 0; y < window.FieldHeight; y++)
+                            if (window.GetCell(x, y) == Window.Cell.Closed)
+                                closedCells.Add(new Point(x, y));
+
+                    var p = closedCells[random.Next(closedCells.Count)];
+
+                    window.OpenCell(p.X, p.Y);
                 }
             }
         }
