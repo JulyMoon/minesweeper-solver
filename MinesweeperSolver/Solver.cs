@@ -51,7 +51,9 @@ namespace MinesweeperSolver
 
         public void Solve()
         {
+            Console.WriteLine("Starting to solve...");
             SimpleAlgorithm();
+            Console.WriteLine(window.Win ? "Yay! I won :D" : "Oops... I blew up :O");
         }
 
         private void SimpleAlgorithm()
@@ -71,7 +73,6 @@ namespace MinesweeperSolver
                                     foreach (var neighbor in notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
                                     {
                                         window.FlagCell(neighbor);
-                                        //Thread.Sleep(10);
                                         change = true;
                                     }
                             }
@@ -87,14 +88,11 @@ namespace MinesweeperSolver
                                 var cc = window.GetCellContents(x, y);
                                 var p = new Point(x, y);
                                 var neighbors = GetValidNeighbors(p);
-                                if (IsNumber(cc) && neighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged).Count() == ToInt(cc))
+                                if (IsNumber(cc) && neighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged).Count() == ToInt(cc)
+                                    && neighbors.Any(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
                                 {
-                                    foreach (var neighbor in neighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
-                                    {
-                                        window.MassOpenCell(p);
-                                        //Thread.Sleep(10);
-                                        change = true;
-                                    }
+                                    window.MassOpenCell(p);
+                                    change = true;
                                 }
                             }
                 }

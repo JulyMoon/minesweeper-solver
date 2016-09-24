@@ -20,31 +20,19 @@ namespace MinesweeperSolver
         private const int heightExcess = 112;
         private const string windowTitle = "Minesweeper";
         
-        private int width, height;
         private Rectangle bounds;
         private Rectangle fieldBounds;
         private Bitmap screenshot;
         private IntPtr handle;
-        private int bombCount = 99; // todo
 
         private Cell[,] cells;
         private CellContents[,] cellContents;
 
-        public int FieldWidth => width;
-        public int FieldHeight => height;
-        public int BombCount => bombCount;
-
-        public bool GameOver
-        {
-            get
-            {
-                for (int x = 0; x < FieldWidth; x++)
-                    for (int y = 0; y < FieldHeight; y++)
-                        if (cells[x, y] == Cell.Opened && cellContents[x, y] == CellContents.Bomb)
-                            return true;
-                return false;
-            }
-        }
+        public int FieldWidth { get; private set; }
+        public int FieldHeight { get; private set; }
+        public int BombCount { get; private set; }
+        public bool GameOver { get; private set; }
+        public bool Win { get; private set; }
 
         public static Window GetInstance()
         {
@@ -56,7 +44,7 @@ namespace MinesweeperSolver
                 return null;
             }
 
-            Console.WriteLine($"Window found! PID: {process.Id}");
+            Console.WriteLine($"Window found!");
             return new Window(process.MainWindowHandle);
         }
 
@@ -64,7 +52,7 @@ namespace MinesweeperSolver
         {
             this.handle = handle;
             Initialize();
-            Console.WriteLine($"X: {bounds.X}\nY: {bounds.Y}\nField width: {width}\nField height: {height}");
+            Console.WriteLine($"W: {FieldWidth}, H: {FieldHeight}");
             Thread.Sleep(200);
             NewGame();
             //Thread.Sleep(200);
@@ -99,7 +87,7 @@ namespace MinesweeperSolver
         public void Update()
         {
             screenshot = TakeScreenshot();
-            ReadField();
+            ReadScreenshot();
         }
 
         public Cell GetCell(int x, int y) => cells[x, y];
@@ -115,16 +103,16 @@ namespace MinesweeperSolver
             var rect = new WindowRectangle();
             GetWindowRect(handle, ref rect);
 
-            width = (rect.Right - rect.Left - widthExcess) / mineSize;
-            height = (rect.Bottom - rect.Top - heightExcess) / mineSize;
+            FieldWidth = (rect.Right - rect.Left - widthExcess) / mineSize;
+            FieldHeight = (rect.Bottom - rect.Top - heightExcess) / mineSize;
             bounds = new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
-            fieldBounds = new Rectangle(bounds.X + xFieldAdjust, bounds.Y + yFieldAdjust, mineSize * width, mineSize * height);
+            fieldBounds = new Rectangle(bounds.X + xFieldAdjust, bounds.Y + yFieldAdjust, mineSize * FieldWidth, mineSize * FieldHeight);
 
-            cells = new Cell[width, height];
-            cellContents = new CellContents[width, height];
+            cells = new Cell[FieldWidth, FieldHeight];
+            cellContents = new CellContents[FieldWidth, FieldHeight];
 
-            for (int i = 0; i < width; i++)
-                for (int j = 0; j < height; j++)
+            for (int i = 0; i < FieldWidth; i++)
+                for (int j = 0; j < FieldHeight; j++)
                 {
                     cells[i, j] = Cell.Closed;
                     cellContents[i, j] = CellContents.Bomb; // Kappa
@@ -137,10 +125,16 @@ namespace MinesweeperSolver
             Mouse.LeftClick();
         }
 
-        private void ReadField()
+        private void ReadScreenshot()
         {
-            for (int x = 0; x < width; x++)
-                for (int y = 0; y < height; y++)
+            if (screenshot.GetPixel(bounds.Width / 2 - 2, 72) == Color.FromArgb(0, 0, 0))
+            {
+                GameOver = true;
+                Win = screenshot.GetPixel(bounds.Width / 2 - 4, 73) == Color.FromArgb(0, 0, 0);
+            }
+
+            for (int x = 0; x < FieldWidth; x++)
+                for (int y = 0; y < FieldHeight; y++)
                     ReadCell(x, y);
         }
 
@@ -201,9 +195,9 @@ namespace MinesweeperSolver
 
         private Bitmap TakeScreenshot()
         {
-            var bmp = new Bitmap(fieldBounds.Width, fieldBounds.Height);
+            var bmp = new Bitmap(bounds.Width, bounds.Height);
             using (var gfx = Graphics.FromImage(bmp))
-                gfx.CopyFromScreen(new System.Drawing.Point(fieldBounds.Left, fieldBounds.Top), System.Drawing.Point.Empty, fieldBounds.Size);
+                gfx.CopyFromScreen(new System.Drawing.Point(bounds.Left, bounds.Top), System.Drawing.Point.Empty, bounds.Size);
 
             bmp.Save(@"C:\Users\foxneSs\Desktop\asd.png", ImageFormat.Png);
             return bmp;
@@ -217,15 +211,14 @@ namespace MinesweeperSolver
 
         private void FieldToScreen(ref int x, ref int y)
         {
-            FieldToScreenshot(ref x, ref y);
-            x += fieldBounds.X + mineSize / 2;
-            y += fieldBounds.Y + mineSize / 2;
+            x = fieldBounds.X + (mineSize * x) + mineSize / 2;
+            y = fieldBounds.Y + (mineSize * y) + mineSize / 2;
         }
 
         private void FieldToScreenshot(ref int x, ref int y)
         {
-            x = mineSize * x;
-            y = mineSize * y;
+            x = xFieldAdjust + mineSize * x;
+            y = yFieldAdjust + mineSize * y;
         }
 
         private void BringToFront()
