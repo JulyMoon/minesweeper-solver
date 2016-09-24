@@ -22,31 +22,22 @@ namespace MinesweeperSolver
             Console.WriteLine(s);
         }*/
 
-        private double[,] cellBombChance;
+        //private double[,] cellBombChance;
         private Window window;
         private static readonly Random random = new Random();
         private static readonly Point[] pointNeighbors =
             { Point.Up, Point.Down, Point.Left, Point.Right, Point.TopLeft, Point.TopRight, Point.BottomLeft, Point.BottomRight };
 
-        public static Solver GetInstance()
-        {
-            var window = Window.GetInstance();
-            if (window == null)
-                return null;
-
-            return new Solver(window);
-        }
-
-        private Solver(Window window)
+        public Solver(Window window)
         {
             this.window = window;
 
-            cellBombChance = new double[window.FieldWidth, window.FieldHeight];
+            /*cellBombChance = new double[window.FieldWidth, window.FieldHeight];
             for (int x = 0; x < window.FieldWidth; x++)
                 for (int y = 0; y < window.FieldHeight; y++)
                 {
                     cellBombChance[x, y] = -1;
-                }
+                }*/
         }
 
         public void Solve()
@@ -58,8 +49,13 @@ namespace MinesweeperSolver
 
         private void SimpleAlgorithm()
         {
-            while (!window.GameOver)
+            while (true)
             {
+                window.Update();
+
+                if (window.GameOver)
+                    break;
+
                 var change = false;
                 for (int x = 0; x < window.FieldWidth; x++)
                     for (int y = 0; y < window.FieldHeight; y++)
@@ -110,8 +106,6 @@ namespace MinesweeperSolver
                     } while (bad);
                     window.OpenCell(xx, yy);
                 }
-
-                window.Update();
             }
         }
 

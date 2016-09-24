@@ -54,9 +54,9 @@ namespace MinesweeperSolver
             Initialize();
             Console.WriteLine($"W: {FieldWidth}, H: {FieldHeight}");
             Thread.Sleep(200);
-            NewGame();
+            //NewGame();
             //Thread.Sleep(200);
-            Update();
+            //Update();
         }
 
         public void FlagCell(Point p) => FlagCell(p.X, p.Y);
@@ -90,6 +90,14 @@ namespace MinesweeperSolver
             ReadScreenshot();
         }
 
+        public void NewGame()
+        {
+            BringToFront();
+            GameOver = false;
+            Mouse.SetPosition(bounds.X + bounds.Width / 2, bounds.Y + 80);
+            Mouse.LeftClick();
+        }
+
         public Cell GetCell(int x, int y) => cells[x, y];
 
         public CellContents GetCellContents(int x, int y) => cellContents[x, y];
@@ -117,12 +125,6 @@ namespace MinesweeperSolver
                     cells[i, j] = Cell.Closed;
                     cellContents[i, j] = CellContents.Bomb; // Kappa
                 }
-        }
-
-        private void NewGame()
-        {
-            Mouse.SetPosition(bounds.X + bounds.Width / 2, bounds.Y + 80);
-            Mouse.LeftClick();
         }
 
         private void ReadScreenshot()

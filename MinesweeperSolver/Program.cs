@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 
 namespace MinesweeperSolver
 {
@@ -7,12 +8,19 @@ namespace MinesweeperSolver
         static void Main(string[] args)
         {
             Console.Title = "Minesweeper Solver";
-            
+
+            var window = Window.GetInstance();
+            if (window == null)
+                return;
+
+            var solver = new Solver(window);
+
             while (true)
             {
                 Console.Clear();
-                var solver = Solver.GetInstance();
-                solver?.Solve();
+
+                window.NewGame();
+                solver.Solve();
                 
                 Console.ReadLine();
             }
