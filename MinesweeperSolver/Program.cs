@@ -41,7 +41,7 @@ namespace MinesweeperSolver
                 games++;
                 if (window.Win) wins++;
                 Console.Title = $"{wins}/{games} ({100d * wins / games}%)";
-                Console.WriteLine(window.Win ? "win" : "lose");
+                Console.WriteLine($"{(window.Win ? "win " : "lose")} ({solver.RisksTaken}, {solver.MinesFlagged})");
             }
         }
     }

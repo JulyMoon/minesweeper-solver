@@ -28,6 +28,9 @@ namespace MinesweeperSolver
         private static readonly Point[] pointNeighbors =
             { Point.Up, Point.Down, Point.Left, Point.Right, Point.TopLeft, Point.TopRight, Point.BottomLeft, Point.BottomRight };
 
+        public int RisksTaken { get; private set; }
+        public int MinesFlagged { get; private set; }
+
         public Solver(Window window)
         {
             this.window = window;
@@ -42,6 +45,8 @@ namespace MinesweeperSolver
 
         public void Solve()
         {
+            MinesFlagged = 0;
+            RisksTaken = -1; // -1 because the first click is never a risk
             //Console.WriteLine("Starting to solve...");
             SimpleAlgorithm();
             //Console.WriteLine(window.Win ? "Yay! I won :D" : "Oops... I blew up :O");
@@ -69,6 +74,7 @@ namespace MinesweeperSolver
                                     foreach (var neighbor in notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
                                     {
                                         window.FlagCell(neighbor);
+                                        MinesFlagged++;
                                         change = true;
                                     }
                             }
@@ -105,6 +111,7 @@ namespace MinesweeperSolver
                     var p = closedCells[random.Next(closedCells.Count)];
 
                     window.OpenCell(p.X, p.Y);
+                    RisksTaken++;
                 }
 
                 Thread.Sleep(10);
