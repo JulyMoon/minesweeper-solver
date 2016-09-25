@@ -106,6 +106,8 @@ namespace MinesweeperSolver
 
                     window.OpenCell(p.X, p.Y);
                 }
+
+                Thread.Sleep(10);
             }
         }
 

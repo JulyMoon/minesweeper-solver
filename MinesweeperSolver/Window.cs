@@ -86,7 +86,7 @@ namespace MinesweeperSolver
 
         public void Update()
         {
-            screenshot = TakeScreenshot();
+            screenshot = TakeScreenshot(false);
             ReadScreenshot();
         }
 
@@ -199,28 +199,34 @@ namespace MinesweeperSolver
             }
         }
 
-        private Bitmap TakeScreenshot()
+        public void SaveScreenshot()
+            => screenshot.Save(@"C:\Users\foxneSs\Desktop\asd.png", ImageFormat.Png);
+
+        private Bitmap TakeScreenshot(bool save)
         {
-            Thread.Sleep(10);
+            //Thread.Sleep(10);
             var bmp = new Bitmap(bounds.Width, bounds.Height);
             using (var gfx = Graphics.FromImage(bmp))
                 gfx.CopyFromScreen(new System.Drawing.Point(bounds.Left, bounds.Top), System.Drawing.Point.Empty, bounds.Size);
 
-            bool exception;
-            do
+            if (save)
             {
-                exception = false;
+                bool exception;
+                do
+                {
+                    exception = false;
 
-                try
-                {
-                    bmp.Save(@"C:\Users\foxneSs\Desktop\asd.png", ImageFormat.Png);
-                }
-                catch
-                {
-                    exception = true;
-                    Console.WriteLine("EXCEPTION");
-                }
-            } while (exception);
+                    try
+                    {
+                        bmp.Save(@"C:\Users\foxneSs\Desktop\asd.png", ImageFormat.Png);
+                    }
+                    catch
+                    {
+                        exception = true;
+                        Console.WriteLine("EXCEPTION");
+                    }
+                } while (exception);
+            }
             
             return bmp;
         }

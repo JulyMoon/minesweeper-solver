@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 
 namespace MinesweeperSolver
@@ -8,6 +9,21 @@ namespace MinesweeperSolver
         static void Main(string[] args)
         {
             Console.Title = "Minesweeper Solver";
+
+            foreach (var pcs in Process.GetProcesses())
+                if (pcs.MainWindowTitle == Console.Title && Process.GetCurrentProcess().Id != pcs.Id)
+                {
+                    pcs.Kill();
+
+                    /*foreach (var pcs2 in Process.GetProcesses())
+                        if (pcs2.MainWindowTitle == "Minesweeper")
+                        {
+                            pcs2.Kill();
+                            break;
+                        }*/
+
+                    return;
+                }
 
             var window = Window.GetInstance();
             if (window == null)
@@ -20,16 +36,12 @@ namespace MinesweeperSolver
 
             while (true)
             {
-                //Console.Clear();
-
                 window.NewGame();
                 solver.Solve();
                 games++;
                 if (window.Win) wins++;
                 Console.Title = $"{wins}/{games} ({100d * wins / games}%)";
                 Console.WriteLine(window.Win ? "win" : "lose");
-                
-                //Console.ReadLine();
             }
         }
     }
