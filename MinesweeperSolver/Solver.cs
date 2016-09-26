@@ -34,13 +34,6 @@ namespace MinesweeperSolver
         public Solver(Window window)
         {
             this.window = window;
-
-            /*cellBombChance = new double[window.FieldWidth, window.FieldHeight];
-            for (int x = 0; x < window.FieldWidth; x++)
-                for (int y = 0; y < window.FieldHeight; y++)
-                {
-                    cellBombChance[x, y] = -1;
-                }*/
         }
 
         public void Solve(bool newGame)
@@ -79,17 +72,22 @@ namespace MinesweeperSolver
 
         private void TankAlgorithm()
         {
-            var pointsToSolve = new List<Point>();
+            var islands = GetIslands(GetPointsToSolve());
 
-            for (int x = 0; x < window.FieldWidth; x++)
-                for (int y = 0; y < window.FieldHeight; y++)
-                    if (window.GetCell(x, y) == Window.Cell.Opened && IsNumber(window.GetCellContents(x, y))
-                        && GetValidNeighbors(new Point(x, y)).Any(neighbor => window.GetCell(neighbor.X, neighbor.Y) == Window.Cell.Closed))
-                        // ^ this is optimizable for sure (dont get all neighbors, get one then check then get another one)
-                    {
-                        pointsToSolve.Add(new Point(x, y));
-                    }
+            // solve islands
+            // input: islands (List<List<Point>>)
+            // output: mine chance for every closed cell neighboring a cell with a number (Dictionary<Point, double>)
 
+
+        }
+
+        private Dictionary<Point, double> SolveIsland(List<Point> island)
+        {
+
+        }
+
+        private List<List<Point>> GetIslands(List<Point> pointsToSolve)
+        {
             var islands = new List<List<Point>>();
             foreach (var point in pointsToSolve)
             {
@@ -102,19 +100,28 @@ namespace MinesweeperSolver
                             goto assigningPointToIsland;
                         }
 
-                assigningPointToIsland:
+                    assigningPointToIsland:
 
                 if (islandThisPointBelongsTo == null)
                     islands.Add(new List<Point> { point });
                 else
                     islandThisPointBelongsTo.Add(point);
             }
+            return islands;
+        }
 
-            // solve islands
-            // input: islands (List<List<Point>>)
-            // output: mine chance for every closed cell neighboring a cell with a number (Dictionary<Point, double>)
-
-
+        private List<Point> GetPointsToSolve()
+        {
+            var pointsToSolve = new List<Point>();
+            for (int x = 0; x < window.FieldWidth; x++)
+                for (int y = 0; y < window.FieldHeight; y++)
+                    if (window.GetCell(x, y) == Window.Cell.Opened && IsNumber(window.GetCellContents(x, y))
+                        && GetValidNeighbors(new Point(x, y)).Any(neighbor => window.GetCell(neighbor.X, neighbor.Y) == Window.Cell.Closed))
+                    // ^ this is optimizable for sure (dont get all neighbors, get one then check then get another one)
+                    {
+                        pointsToSolve.Add(new Point(x, y));
+                    }
+            return pointsToSolve;
         }
 
         private void FlagAllObviousCells()
