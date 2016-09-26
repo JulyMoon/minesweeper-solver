@@ -86,6 +86,33 @@ namespace MinesweeperSolver
 
         }
 
+        private List<bool[]> GetPermutations(int mines, int cells)
+        {
+            if (mines >= cells)
+                throw new ArgumentException("IMPOSSIBRU");
+
+            var permutations = new List<bool[]>();
+            GetPermutations(permutations, new bool[cells], 0, mines);
+            return permutations;
+        }
+
+        private void GetPermutations(List<bool[]> permutations, bool[] current, int fixedCount, int availableMineCount)
+        {
+            var currentClone = (bool[])current.Clone();
+
+            var mineAvailable = currentClone.Count(e => e) < availableMineCount;
+            bool i = mineAvailable;
+            for (int cases = mineAvailable ? 2 : 1; cases > 0; cases--, i = false)
+            {
+                currentClone[fixedCount] = i;
+
+                if (currentClone.Length == fixedCount)
+                    permutations.Add(currentClone);
+                else
+                    GetPermutations(permutations, currentClone, fixedCount + 1, availableMineCount);
+            }
+        }
+
         private List<List<Point>> GetIslands(List<Point> pointsToSolve)
         {
             var islands = new List<List<Point>>();
