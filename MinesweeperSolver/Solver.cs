@@ -67,20 +67,19 @@ namespace MinesweeperSolver
 
         private Dictionary<Point, double> SolveIsland(List<Point> island)
         {
-
+            var islandPoint = island[0];
+            var neighbors 
+            foreach (var permutation in GetPermutations(ToInt(window.GetCellContents(islandPoint)),)
         }
 
-        private bool IsValidIslandConfig(List<Point> island, Dictionary<Point, bool> islandConfig)
+        private bool IsValidIslandConfig(List<Point> island, Dictionary<Point, bool?> islandConfig)
             // incomplete configs CAN be valid because here valid only means that no number cell has more mines around it than its number
             // note: island points are number cell points adjacent to islandConfig closed cell points
         {
             foreach (var islandPoint in island)
             {
                 var neighbors = GetValidNeighbors(islandPoint).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened);
-                int minesAround = 0;
-                foreach (var neighbor in neighbors)
-                    if (window.GetCell(neighbor) == Window.Cell.Flagged || islandConfig[neighbor])
-                        minesAround++;
+                int minesAround = neighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (islandConfig[neighbor] ?? false));
 
                 if (minesAround > ToInt(window.GetCellContents(islandPoint)))
                     return false;
