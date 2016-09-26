@@ -43,25 +43,24 @@ namespace MinesweeperSolver
                 }*/
         }
 
-        public void Solve()
+        public void Solve(bool newGame)
         {
             MinesFlagged = 0;
             RisksTaken = -1; // -1 because the first click is never a risk
-            //Console.WriteLine("Starting to solve...");
-            SimpleAlgorithm();
-            //Console.WriteLine(window.Win ? "Yay! I won :D" : "Oops... I blew up :O");
-        }
 
-        private void SimpleAlgorithm()
-        {
+            if (newGame)
+                window.OpenCell(random.Next(window.FieldWidth), random.Next(window.FieldHeight));
+
+            int asd = 0;
             while (true)
             {
+                asd++;
                 window.Update();
 
                 if (window.GameOver)
                     break;
 
-                var change = false;
+
                 for (int x = 0; x < window.FieldWidth; x++)
                     for (int y = 0; y < window.FieldHeight; y++)
                         if (window.GetCell(x, y) == Window.Cell.Opened)
@@ -75,47 +74,80 @@ namespace MinesweeperSolver
                                     {
                                         window.FlagCell(neighbor);
                                         MinesFlagged++;
-                                        change = true;
                                     }
                             }
                         }
 
-                if (change)
-                {
-                    change = false;
-                    for (int x = 0; x < window.FieldWidth; x++)
-                        for (int y = 0; y < window.FieldHeight; y++)
-                            if (window.GetCell(x, y) == Window.Cell.Opened)
+                var change = false;
+                for (int x = 0; x < window.FieldWidth; x++)
+                    for (int y = 0; y < window.FieldHeight; y++)
+                        if (window.GetCell(x, y) == Window.Cell.Opened)
+                        {
+                            var cc = window.GetCellContents(x, y);
+                            if (IsNumber(cc))
                             {
-                                var cc = window.GetCellContents(x, y);
                                 var p = new Point(x, y);
                                 var neighbors = GetValidNeighbors(p);
-                                if (IsNumber(cc) && neighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged).Count() == ToInt(cc)
+                                if (neighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged) == ToInt(cc)
                                     && neighbors.Any(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
                                 {
                                     window.MassOpenCell(p);
                                     change = true;
                                 }
                             }
-                }
+                        }
 
                 if (!change)
                 {
-                    var closedCells = new List<Point>();
-
-                    for (int x = 0; x < window.FieldWidth; x++)
-                        for (int y = 0; y < window.FieldHeight; y++)
-                            if (window.GetCell(x, y) == Window.Cell.Closed)
-                                closedCells.Add(new Point(x, y));
-
-                    var p = closedCells[random.Next(closedCells.Count)];
-
-                    window.OpenCell(p.X, p.Y);
+                    if (asd > 1)
+                        Thread.Sleep(3000);
+                    return;
+                    //TankAlgorithm();
                     RisksTaken++;
                 }
 
-                Thread.Sleep(10);
+                Thread.Sleep(10); // may be not needed
             }
+        }
+
+        private void TankAlgorithm()
+        {
+            var pointsToSolve = new List<Point>();
+
+            for (int x = 0; x < window.FieldWidth; x++)
+                for (int y = 0; y < window.FieldHeight; y++)
+                    if (window.GetCell(x, y) == Window.Cell.Opened && IsNumber(window.GetCellContents(x, y))
+                        && GetValidNeighbors(new Point(x, y)).Any(neighbor => window.GetCell(neighbor.X, neighbor.Y) == Window.Cell.Closed))
+                        // ^ this is optimizable for sure (dont get all neighbors, get one then check then get another one)
+                    {
+                        pointsToSolve.Add(new Point(x, y));
+                    }
+
+            var islands = new List<List<Point>>();
+            foreach (var point in pointsToSolve)
+            {
+                List<Point> islandThisPointBelongsTo = null;
+                foreach (var island in islands)
+                    foreach (var islandPoint in island)
+                        if (GetValidNeighbors(islandPoint).Any(p => p == point))
+                        {
+                            islandThisPointBelongsTo = island;
+                            goto assigningPointToIsland;
+                        }
+
+                assigningPointToIsland:
+
+                if (islandThisPointBelongsTo == null)
+                    islands.Add(new List<Point> { point });
+                else
+                    islandThisPointBelongsTo.Add(point);
+            }
+
+            // solve islands
+            // input: islands (List<List<Point>>)
+            // output: mine chance for every closed cell neighboring a cell with a number (Dictionary<Point, double>)
+
+
         }
 
         private static bool IsNumber(Window.CellContents cc)

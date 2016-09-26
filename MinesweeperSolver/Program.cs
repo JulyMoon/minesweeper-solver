@@ -37,7 +37,7 @@ namespace MinesweeperSolver
             while (true)
             {
                 window.NewGame();
-                solver.Solve();
+                solver.Solve(true);
                 games++;
                 if (window.Win) wins++;
                 Console.Title = $"{wins}/{games} ({100d * wins / games}%)";
