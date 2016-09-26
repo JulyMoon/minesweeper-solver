@@ -11,18 +11,6 @@ namespace MinesweeperSolver
 {
     public class Solver
     {
-        /*private void PrintCell(int x, int y)
-        {
-            var cell = cells[x, y];
-            var s = $"cells[{x}, {y}] = {cell} | ";
-            if (cell == Cell.Opened)
-                s += $"cellContents[{x}, {y}] = {cellContents[x, y]}";
-            else
-                s += $"cellBombChance[{x}, {y}] = {cellBombChance[x, y]}";
-            Console.WriteLine(s);
-        }*/
-
-        //private double[,] cellBombChance;
         private Window window;
         private static readonly Random random = new Random();
         private static readonly Point[] pointNeighbors =
@@ -74,16 +62,30 @@ namespace MinesweeperSolver
         {
             var islands = GetIslands(GetPointsToSolve());
 
-            // solve islands
-            // input: islands (List<List<Point>>)
-            // output: mine chance for every closed cell neighboring a cell with a number (Dictionary<Point, double>)
-
-
+            //
         }
 
         private Dictionary<Point, double> SolveIsland(List<Point> island)
         {
 
+        }
+
+        private bool IsValidIslandConfig(List<Point> island, Dictionary<Point, bool> islandConfig)
+            // incomplete configs CAN be valid because here valid only means that no number cell has more mines around it than its number
+            // note: island points are number cell points adjacent to islandConfig closed cell points
+        {
+            foreach (var islandPoint in island)
+            {
+                var neighbors = GetValidNeighbors(islandPoint).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened);
+                int minesAround = 0;
+                foreach (var neighbor in neighbors)
+                    if (window.GetCell(neighbor) == Window.Cell.Flagged || islandConfig[neighbor])
+                        minesAround++;
+
+                if (minesAround > ToInt(window.GetCellContents(islandPoint)))
+                    return false;
+            }
+            return true;
         }
 
         private List<bool[]> GetPermutations(int mines, int cells)
@@ -99,12 +101,10 @@ namespace MinesweeperSolver
         private void GetPermutations(List<bool[]> permutations, bool[] current, int fixedCount, int availableMineCount)
         {
             var currentClone = (bool[])current.Clone();
-
             var mineAvailable = currentClone.Count(e => e) < availableMineCount;
-            bool i = mineAvailable;
-            for (int cases = mineAvailable ? 2 : 1; cases > 0; cases--, i = false)
+            for (int cases = mineAvailable ? 2 : 1; cases > 0; cases--, mineAvailable = false)
             {
-                currentClone[fixedCount] = i;
+                currentClone[fixedCount] = mineAvailable;
 
                 if (currentClone.Length == fixedCount)
                     permutations.Add(currentClone);
