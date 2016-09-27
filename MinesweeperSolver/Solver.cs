@@ -31,11 +31,9 @@ namespace MinesweeperSolver
 
             if (newGame)
                 window.OpenCell(random.Next(window.FieldWidth), random.Next(window.FieldHeight));
-
-            int asd = 0;
+            
             while (true)
             {
-                asd++;
                 window.Update();
 
                 if (window.GameOver)
@@ -47,10 +45,7 @@ namespace MinesweeperSolver
 
                 if (!impact)
                 {
-                    if (asd > 1)
-                        Thread.Sleep(3000);
-                    return;
-                    //TankAlgorithm();
+                    TankAlgorithm();
                     RisksTaken++;
                 }
 
@@ -60,16 +55,77 @@ namespace MinesweeperSolver
 
         private void TankAlgorithm()
         {
-            var islands = GetIslands(GetPointsToSolve());
+            var solution = GetIslands(GetPointsToSolve()).SelectMany(island => SolveIsland(island)).ToDictionary(pair => pair.Key, pair => pair.Value);
+            Point minimalMineChanceCell = null;
+            var min = Double.MaxValue;
+            foreach (var key in solution.Keys)
+                if (solution[key] < min)
+                {
+                    min = solution[key];
+                    minimalMineChanceCell = key;
+                }
 
-            //
+            window.OpenCell(minimalMineChanceCell);
         }
 
         private Dictionary<Point, double> SolveIsland(List<Point> island)
         {
-            var islandPoint = island[0];
-            var neighbors 
-            foreach (var permutation in GetPermutations(ToInt(window.GetCellContents(islandPoint)),)
+            int totalConfigCount = 0;
+            var solution = new Dictionary<Point, int>();
+            SolveIsland(ref solution, ref totalConfigCount, new Dictionary<Point, bool?>(), island, 0);
+            return solution.ToDictionary(pair => pair.Key, pair => (double)pair.Value / totalConfigCount);
+        }
+
+        private void SolveIsland(ref Dictionary<Point, int> solution, ref int totalConfigCount, Dictionary<Point, bool?> currentConfig, List<Point> island, int currentPoint)
+            // the solution consists of the following:
+            //   - a list of points and the number of mines that appeared in that point across all configs
+            //   - a total number of configs
+        {
+            var islandPoint = island[currentPoint];
+            var neighbors = GetValidNeighbors(islandPoint);
+
+            var notOpenedNeighbors = neighbors.Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
+            var fixedConfigPoints = currentConfig.Where(pair => pair.Value != null).Select(pair => pair.Key).ToList();
+            var configNeighbors = notOpenedNeighbors.Where(neighbor => fixedConfigPoints.Contains(neighbor)).ToList();
+            var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !configNeighbors.Contains(neighbor)).ToList();
+
+            int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || configNeighbors.Contains(neighbor));
+
+            foreach (var permutation in GetPermutations(adjustedMineCount, neighborsToSolve.Count))
+            {
+                for (int i = 0; i < neighborsToSolve.Count; i++)
+                {
+                    if (currentConfig.ContainsKey(neighborsToSolve[i]))
+                        currentConfig[neighborsToSolve[i]] = permutation[i];
+                    else
+                        currentConfig.Add(neighborsToSolve[i], permutation[i]);
+                }
+                
+                if (IsValidIslandConfig(island, currentConfig))
+                {
+                    if (island.Count == currentPoint + 1)
+                    {
+                        if (solution.Count == 0)
+                            foreach (var point in currentConfig)
+                                solution.Add(point.Key, 0);
+
+                        foreach (var point in currentConfig)
+                            if ((bool)point.Value)
+                                solution[point.Key]++;
+
+                        totalConfigCount++;
+                        return;
+                    }
+                    else
+                        SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1);
+                }
+                else
+                {
+                    for (int i = 0; i < neighborsToSolve.Count; i++)
+                        currentConfig[neighborsToSolve[i]] = null;
+                    return;
+                }
+            }
         }
 
         private bool IsValidIslandConfig(List<Point> island, Dictionary<Point, bool?> islandConfig)
