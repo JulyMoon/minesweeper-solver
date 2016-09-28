@@ -55,7 +55,25 @@ namespace MinesweeperSolver
 
         private void TankAlgorithm()
         {
-            var solution = GetIslands(GetPointsToSolve()).SelectMany(island => SolveIsland(island)).ToDictionary(pair => pair.Key, pair => pair.Value);
+            var islands = GetIslands(GetPointsToSolve());
+            Console.WriteLine($"Found {islands.Count} islands");
+            var solution = new Dictionary<Point, double>();
+            int i = 0;
+            foreach (var island in islands)
+            {
+                i++;
+                Console.WriteLine($"Solving {i}th island: {PointListToStr(island)}");
+                var islandSolution = SolveIsland(island);
+
+                if (islandSolution.Count == 0)
+                    throw new Exception();
+
+                Console.WriteLine($"{i}th island's solution:\n{SolutionToStr(islandSolution)}");
+                solution = solution.Concat(islandSolution).ToDictionary(pair => pair.Key, pair => pair.Value);
+            }
+
+            Console.WriteLine($"Overall solution:\n{SolutionToStr(solution)}");
+
             var minimalMineChanceCells = new List<Point>();
             var min = Double.MaxValue;
             foreach (var key in solution.Keys)
@@ -94,13 +112,13 @@ namespace MinesweeperSolver
 
             var notOpenedNeighbors = neighbors.Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
             var fixedConfigPoints = currentConfig.Where(pair => pair.Value != null).Select(pair => pair.Key).ToList();
-            var configNeighbors = notOpenedNeighbors.Where(neighbor => fixedConfigPoints.Contains(neighbor)).ToList();
-            var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !(configNeighbors.Contains(neighbor) && currentConfig[neighbor] != null)).ToList();
+            var fixedConfigNeighbors = notOpenedNeighbors.Intersect(fixedConfigPoints).ToList();
+            var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !fixedConfigNeighbors.Contains(neighbor)).ToList();
 
             if (neighborsToSolve.Count == 0)
                 return;
 
-            int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (configNeighbors.Contains(neighbor) && (currentConfig[neighbor] ?? false)));
+            int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (fixedConfigNeighbors.Contains(neighbor) && (bool)currentConfig[neighbor]));
 
             foreach (var permutation in GetPermutations(adjustedMineCount, neighborsToSolve.Count))
             {
@@ -165,8 +183,6 @@ namespace MinesweeperSolver
                 bool append = true;
                 while (true)
                 {
-                    //if (count - 1 <= 0)
-                    //    ; // arrest me
                     var a = GetPermutations(append ? trueCount - 1 : trueCount, count - 1);
                     for (int i = 0; i < a.Count; i++)
                         a[i] = new[] { append }.Concat(a[i]).ToArray();
@@ -283,6 +299,26 @@ namespace MinesweeperSolver
                     neighbors.Add(n);
             }
             return neighbors;
+        }
+
+        private static string PointListToStr(List<Point> island)
+        {
+            string s = "[";
+            foreach (var point in island.Take(island.Count - 1))
+                s += $"{PointToStr(point)}, ";
+            if (island.Count > 0)
+                s += $"{PointToStr(island.Last())}]";
+            return s;
+        }
+
+        private static string PointToStr(Point p) => $"({p.X}, {p.Y})";
+
+        private static string SolutionToStr(Dictionary<Point, double> solution)
+        {
+            string s = "{\n";
+            foreach (var pair in solution)
+                s += $"\t{PointToStr(pair.Key)}: {pair.Value * 100}%\n";
+            return s + "}";
         }
     }
 }
