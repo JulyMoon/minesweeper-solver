@@ -203,21 +203,17 @@ namespace MinesweeperSolver
             var islands = new List<List<Point>>();
             foreach (var point in pointsToSolve)
             {
-                List<Point> islandThisPointBelongsTo = null;
+                var islandsThisPointBelongsTo = new List<List<Point>>();
                 foreach (var island in islands)
                     foreach (var islandPoint in island)
-                        if (GetValidNeighbors(islandPoint).Any(p => p == point))
+                        if (GetValidNeighbors(islandPoint).Contains(point) && !islandsThisPointBelongsTo.Contains(island))
                         {
-                            islandThisPointBelongsTo = island;
-                            goto assigningPointToIsland;
+                            islandsThisPointBelongsTo.Add(island);
+                            break;
                         }
 
-                    assigningPointToIsland:
-
-                if (islandThisPointBelongsTo == null)
-                    islands.Add(new List<Point> { point });
-                else
-                    islandThisPointBelongsTo.Add(point);
+                islands = islands.Except(islandsThisPointBelongsTo).ToList();
+                islands.Add(islandsThisPointBelongsTo.SelectMany(a => a).Concat(new List<Point> { point }).ToList());
             }
             return islands;
         }
