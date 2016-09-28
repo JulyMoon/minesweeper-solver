@@ -95,7 +95,10 @@ namespace MinesweeperSolver
             var notOpenedNeighbors = neighbors.Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
             var fixedConfigPoints = currentConfig.Where(pair => pair.Value != null).Select(pair => pair.Key).ToList();
             var configNeighbors = notOpenedNeighbors.Where(neighbor => fixedConfigPoints.Contains(neighbor)).ToList();
-            var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !configNeighbors.Contains(neighbor)).ToList();
+            var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !(configNeighbors.Contains(neighbor) && currentConfig[neighbor] != null)).ToList();
+
+            if (neighborsToSolve.Count == 0)
+                return;
 
             int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (configNeighbors.Contains(neighbor) && (currentConfig[neighbor] ?? false)));
 
@@ -162,6 +165,8 @@ namespace MinesweeperSolver
                 bool append = true;
                 while (true)
                 {
+                    //if (count - 1 <= 0)
+                    //    ; // arrest me
                     var a = GetPermutations(append ? trueCount - 1 : trueCount, count - 1);
                     for (int i = 0; i < a.Count; i++)
                         a[i] = new[] { append }.Concat(a[i]).ToArray();
