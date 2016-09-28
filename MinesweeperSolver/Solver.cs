@@ -135,7 +135,7 @@ namespace MinesweeperSolver
             foreach (var islandPoint in island)
             {
                 var neighbors = GetValidNeighbors(islandPoint).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened);
-                int minesAround = neighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (islandConfig[neighbor] ?? false));
+                int minesAround = neighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (islandConfig.ContainsKey(neighbor) && (islandConfig[neighbor] ?? false)));
 
                 if (minesAround > ToInt(window.GetCellContents(islandPoint)))
                     return false;
@@ -143,28 +143,30 @@ namespace MinesweeperSolver
             return true;
         }
 
-        private List<bool[]> GetPermutations(int mines, int cells)
+        private static List<bool[]> GetPermutations(int trueCount, int count)
         {
-            if (mines >= cells)
-                throw new ArgumentException("IMPOSSIBRU");
-
-            var permutations = new List<bool[]>();
-            GetPermutations(permutations, new bool[cells], 0, mines);
-            return permutations;
-        }
-
-        private void GetPermutations(List<bool[]> permutations, bool[] current, int fixedCount, int availableMineCount)
-        {
-            var currentClone = (bool[])current.Clone();
-            var mineAvailable = currentClone.Count(e => e) < availableMineCount;
-            for (int cases = mineAvailable ? 2 : 1; cases > 0; cases--, mineAvailable = false)
+            if (trueCount == 0)
+                return new List<bool[]> { Enumerable.Repeat(false, count).ToArray() };
+            else if (trueCount == count)
+                return new List<bool[]> { Enumerable.Repeat(true, count).ToArray() };
+            else
             {
-                currentClone[fixedCount] = mineAvailable;
+                var permutations = new List<bool[]>();
+                bool append = true;
+                while (true)
+                {
+                    var a = GetPermutations(append ? trueCount - 1 : trueCount, count - 1);
+                    for (int i = 0; i < a.Count; i++)
+                        a[i] = new[] { append }.Concat(a[i]).ToArray();
+                    permutations = permutations.Concat(a).ToList();
 
-                if (currentClone.Length == fixedCount)
-                    permutations.Add(currentClone);
-                else
-                    GetPermutations(permutations, currentClone, fixedCount + 1, availableMineCount);
+                    if (append)
+                        append = false;
+                    else
+                        break;
+                }
+
+                return permutations;
             }
         }
 
