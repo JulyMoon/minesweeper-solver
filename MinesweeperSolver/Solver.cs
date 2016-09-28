@@ -56,16 +56,23 @@ namespace MinesweeperSolver
         private void TankAlgorithm()
         {
             var solution = GetIslands(GetPointsToSolve()).SelectMany(island => SolveIsland(island)).ToDictionary(pair => pair.Key, pair => pair.Value);
-            Point minimalMineChanceCell = null;
+            var minimalMineChanceCells = new List<Point>();
             var min = Double.MaxValue;
             foreach (var key in solution.Keys)
-                if (solution[key] < min)
+            {
+                if (solution[key] == min)
+                {
+                    minimalMineChanceCells.Add(key);
+                }
+                else if (solution[key] < min)
                 {
                     min = solution[key];
-                    minimalMineChanceCell = key;
+                    minimalMineChanceCells.Clear();
+                    minimalMineChanceCells.Add(key);
                 }
+            }
 
-            window.OpenCell(minimalMineChanceCell);
+            window.OpenCell(minimalMineChanceCells[random.Next(minimalMineChanceCells.Count)]);
         }
 
         private Dictionary<Point, double> SolveIsland(List<Point> island)
@@ -73,7 +80,8 @@ namespace MinesweeperSolver
             int totalConfigCount = 0;
             var solution = new Dictionary<Point, int>();
             SolveIsland(ref solution, ref totalConfigCount, new Dictionary<Point, bool?>(), island, 0);
-            return solution.ToDictionary(pair => pair.Key, pair => (double)pair.Value / totalConfigCount);
+            var result = solution.ToDictionary(pair => pair.Key, pair => (double)pair.Value / totalConfigCount);
+            return result;
         }
 
         private void SolveIsland(ref Dictionary<Point, int> solution, ref int totalConfigCount, Dictionary<Point, bool?> currentConfig, List<Point> island, int currentPoint)
@@ -114,7 +122,6 @@ namespace MinesweeperSolver
                                 solution[point.Key]++;
 
                         totalConfigCount++;
-                        return;
                     }
                     else
                         SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1);
