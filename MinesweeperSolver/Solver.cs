@@ -97,7 +97,7 @@ namespace MinesweeperSolver
             var configNeighbors = notOpenedNeighbors.Where(neighbor => fixedConfigPoints.Contains(neighbor)).ToList();
             var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !configNeighbors.Contains(neighbor)).ToList();
 
-            int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || configNeighbors.Contains(neighbor));
+            int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (configNeighbors.Contains(neighbor) && (currentConfig[neighbor] ?? false)));
 
             foreach (var permutation in GetPermutations(adjustedMineCount, neighborsToSolve.Count))
             {
