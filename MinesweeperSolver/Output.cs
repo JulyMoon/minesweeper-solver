@@ -25,5 +25,17 @@ namespace MinesweeperSolver
                 s += $"\t{pair.Key}: {pair.Value:P1}\n";
             return s + "}";
         }
+
+        public static string WithSuffix(this int n)
+        {
+            var s = n.ToString();
+            if (s.EndsWith("11")) return s + "th";
+            if (s.EndsWith("12")) return s + "th";
+            if (s.EndsWith("13")) return s + "th";
+            if (s.EndsWith("1")) return s + "st";
+            if (s.EndsWith("2")) return s + "nd";
+            if (s.EndsWith("3")) return s + "rd";
+            return s + "th";
+        }
     }
 }

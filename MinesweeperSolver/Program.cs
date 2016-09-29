@@ -18,11 +18,7 @@ namespace MinesweeperSolver
                 }
 
             var window = Window.GetInstance();
-            if (window == null)
-                return;
-
             var solver = new Solver(window);
-
             var games = 0;
             var wins = 0;
 
@@ -33,9 +29,8 @@ namespace MinesweeperSolver
                 solver.Solve(true);
                 games++;
                 if (window.Win) wins++;
-                Console.Title = $"{wins}/{games} ({100d * wins / games}%)";
+                Console.Title = $"{wins}/{games} ({(double)wins / games:P4})";
                 Console.WriteLine($"{(window.Win ? "win " : "lose")} ({solver.RisksTaken}, {solver.MinesFlagged})");
-                Console.ReadLine();
             }
         }
     }

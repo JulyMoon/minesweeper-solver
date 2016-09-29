@@ -57,28 +57,29 @@ namespace MinesweeperSolver
                 return;//throw new Exception();
 
             var islands = GetIslands(points);
-            Console.WriteLine($"Found {islands.Count} islands");
+            Console.WriteLine($"Found {islands.Count} island{(islands.Count > 1 ? "s" : "")}");
             var solution = new Dictionary<Point, double>();
             int i = 0;
             foreach (var island in islands)
             {
-                Console.WriteLine($"Solving {++i}th island: {Output.ToString(island)}");
-                var islandSolution = SolveIsland(island);
-                Console.WriteLine($"{i}th island's solution:\n{Output.ToString(islandSolution)}");
-                solution = solution.Concat(islandSolution).ToDictionary(pair => pair.Key, pair => pair.Value);
+                Console.WriteLine($"Solving the {(++i).WithSuffix()} island out of {islands.Count} with a size of {island.Count}");
+                Console.WriteLine($"The {i.WithSuffix()} island's solution found");
+                solution = solution.Concat(SolveIsland(island)).ToDictionary(pair => pair.Key, pair => pair.Value);
             }
 
-            if (islands.Count > 1)
-                Console.WriteLine($"Overall solution:\n{Output.ToString(solution)}");
-
+            Console.Write("Flagging all obvious cells...");
             FlagAllObviousCells(solution);
+            Console.WriteLine(" Done");
+
+            Console.Write("Opening all obvious cells...");
             bool impact = OpenAllObviousCells(solution);
+            Console.WriteLine($" Done with{(impact ? "" : " no")} impact");
 
             if (!impact)
             {
                 double minChance;
                 var minimalMineChanceCells = GetMinimalMineChanceCells(solution, out minChance);
-                Console.WriteLine($"Opening a cell with a {minChance:P2} chance to blow up");  
+                Console.WriteLine($"Opening a cell with a {minChance:P2} chance to blow up\n");  
                 OpenOneCellRandomly(minimalMineChanceCells);
                 RisksTaken++;
             }
