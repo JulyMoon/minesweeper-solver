@@ -27,7 +27,7 @@ namespace MinesweeperSolver
         public void Solve(bool newGame)
         {
             MinesFlagged = 0;
-            RisksTaken = -1; // -1 because the first click is never a risk
+            RisksTaken = 0;
 
             if (newGame)
                 window.OpenCell(random.Next(window.FieldWidth), random.Next(window.FieldHeight));
@@ -151,7 +151,6 @@ namespace MinesweeperSolver
                 {
                     for (int i = 0; i < neighborsToSolve.Count; i++)
                         currentConfig[neighborsToSolve[i]] = null;
-                    return;
                 }
             }
         }
