@@ -71,12 +71,17 @@ namespace MinesweeperSolver
             if (islands.Count > 1)
                 Console.WriteLine($"Overall solution:\n{Output.ToString(solution)}");
 
-            double minChance;
-            var minimalMineChanceCells = GetMinimalMineChanceCells(solution, out minChance);
-            Console.WriteLine($"Opening a cell with a {minChance:P2} chance to blow up");
-            if (minChance > 0)
+            FlagAllObviousCells(solution);
+            bool impact = OpenAllObviousCells(solution);
+
+            if (!impact)
+            {
+                double minChance;
+                var minimalMineChanceCells = GetMinimalMineChanceCells(solution, out minChance);
+                Console.WriteLine($"Opening a cell with a {minChance:P2} chance to blow up");  
+                OpenOneCellRandomly(minimalMineChanceCells);
                 RisksTaken++;
-            OpenOneCellRandomly(minimalMineChanceCells);
+            }
         }
 
         private static List<Point> GetMinimalMineChanceCells(Dictionary<Point, double> solution, out double minimalChance)
@@ -140,9 +145,6 @@ namespace MinesweeperSolver
             }
 
             int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (fixedConfigNeighbors.Contains(neighbor) && (bool)currentConfig[neighbor]));
-
-            if (adjustedMineCount > neighborsToSolve.Count)
-                return; // may be not needed cuz validity check may be already checking this?
 
             foreach (var permutation in GetPermutations(adjustedMineCount, neighborsToSolve.Count))
             {
@@ -317,6 +319,28 @@ namespace MinesweeperSolver
                         }
                     }
 
+            return impact;
+        }
+
+        private void FlagAllObviousCells(Dictionary<Point, double> solution)
+        {
+            foreach (var pair in solution)
+                if (pair.Value == 1)
+                {
+                    window.FlagCell(pair.Key);
+                    MinesFlagged++;
+                }
+        }
+
+        private bool OpenAllObviousCells(Dictionary<Point, double> solution)
+        {
+            bool impact = false;
+            foreach (var pair in solution)
+                if (pair.Value == 0)
+                {
+                    window.OpenCell(pair.Key);
+                    impact = true;
+                }
             return impact;
         }
 
