@@ -216,20 +216,25 @@ namespace MinesweeperSolver
                 foreach (var island in islands)
                     foreach (var islandPoint in island)
                     {
+                        bool pointBelongsToIsland = false;
                         var pointNeighbors = GetValidNeighbors(point);
                         
                         if (pointNeighbors.Contains(islandPoint))
+                            pointBelongsToIsland = true;
+
+                        if (!pointBelongsToIsland)
+                            foreach (var neighbor in pointNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
+                                if (GetValidNeighbors(neighbor).Contains(islandPoint))
+                                {
+                                    pointBelongsToIsland = true;
+                                    break;
+                                }
+
+                        if (pointBelongsToIsland)
                         {
                             islandsThisPointBelongsTo.Add(island);
                             break;
                         }
-
-                        foreach (var neighbor in pointNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
-                            if (GetValidNeighbors(neighbor).Contains(islandPoint))
-                            {
-                                islandsThisPointBelongsTo.Add(island);
-                                break;
-                            }
                     }
 
                 islands = islands.Except(islandsThisPointBelongsTo).ToList();
