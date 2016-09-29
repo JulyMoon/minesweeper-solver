@@ -55,19 +55,18 @@ namespace MinesweeperSolver
 
         private void TankAlgorithm()
         {
-            var islands = GetIslands(GetPointsToSolve());
+            var points = GetPointsToSolve();
+            if (points.Count == 0)
+                return;//throw new Exception();
+
+            var islands = GetIslands(points);
             Console.WriteLine($"Found {islands.Count} islands");
             var solution = new Dictionary<Point, double>();
             int i = 0;
             foreach (var island in islands)
             {
-                i++;
-                Console.WriteLine($"Solving {i}th island: {PointListToStr(island)}");
+                Console.WriteLine($"Solving {++i}th island: {PointListToStr(island)}");
                 var islandSolution = SolveIsland(island);
-
-                if (islandSolution.Count == 0)
-                    throw new Exception();
-
                 Console.WriteLine($"{i}th island's solution:\n{SolutionToStr(islandSolution)}");
                 solution = solution.Concat(islandSolution).ToDictionary(pair => pair.Key, pair => pair.Value);
             }
@@ -92,7 +91,6 @@ namespace MinesweeperSolver
             }
 
             var randomCell = minimalMineChanceCells[random.Next(minimalMineChanceCells.Count)];
-            Console.WriteLine($"Out of {minimalMineChanceCells.Count} minimal chance cells I chose {PointToStr(randomCell)}");
             window.OpenCell(randomCell);
         }
 
@@ -110,24 +108,17 @@ namespace MinesweeperSolver
             //   - a list of points and the number of mines that appeared in that point across all configs
             //   - a total number of configs
         {
-            var d = DepthToStr(currentPoint);
-            Console.WriteLine($"{d}Solving island point {currentPoint} out of {island.Count}");
             var islandPoint = island[currentPoint];
-
-            Console.WriteLine($"{d}Current point: {PointToStr(islandPoint)}");
 
             var notOpenedNeighbors = GetValidNeighbors(islandPoint).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
             var fixedConfigNeighbors = notOpenedNeighbors.Intersect(currentConfig.Where(pair => pair.Value != null).Select(pair => pair.Key).ToList()).ToList();
             var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !fixedConfigNeighbors.Contains(neighbor)).ToList();
 
-            Console.WriteLine($"{d}Neighbors to solve: {neighborsToSolve.Count}");
             if (neighborsToSolve.Count == 0)
             {
-                Console.WriteLine($"{d}Was that the last point?");
                 if (island.Count == currentPoint + 1)
                 {
-                    Console.WriteLine($"{d}Yup. Config completed. Adding it to the solution...");
-                    if (solution.Count == 0) // may be not needed
+                    if (solution.Count == 0)
                         foreach (var point in currentConfig)
                             solution.Add(point.Key, 0);
 
@@ -136,27 +127,18 @@ namespace MinesweeperSolver
                             solution[point.Key]++;
 
                     totalConfigCount++;
-                    Console.WriteLine($"{d}DONE. Total solution number: {solution.Count}");
                 }
                 else
-                {
-                    Console.WriteLine($"{d}No it wasn't. Constructing...");
                     SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1);
-                }
                 return;
             }
 
             int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (fixedConfigNeighbors.Contains(neighbor) && (bool)currentConfig[neighbor]));
 
-            Console.WriteLine($"{d}Adjusted mine count: {adjustedMineCount}");
-
             if (adjustedMineCount > neighborsToSolve.Count)
                 return; // may be not needed cuz validity check may be already checking this?
 
-            var permutations = GetPermutations(adjustedMineCount, neighborsToSolve.Count);
-
-            int j = 0;
-            foreach (var permutation in permutations)
+            foreach (var permutation in GetPermutations(adjustedMineCount, neighborsToSolve.Count))
             {
                 for (int i = 0; i < neighborsToSolve.Count; i++)
                 {
@@ -166,17 +148,10 @@ namespace MinesweeperSolver
                         currentConfig.Add(neighborsToSolve[i], permutation[i]);
                 }
 
-                Console.WriteLine($"{d}Just applied {++j}th perm out of {permutations.Count}\n{d}Is this perm good?");
-
-                foreach (var neighbor in neighborsToSolve)
-                    Console.WriteLine($"{d}\t{PointToStr(neighbor)}: {currentConfig[neighbor]}");
-
                 if (IsValidIslandConfig(island, currentConfig))
                 {
-                    Console.WriteLine($"{d}YES, but is it enough to complete the config?");
                     if (island.Count == currentPoint + 1)
                     {
-                        Console.WriteLine($"{d}Yup. Config completed. Adding it to the solution...");
                         if (solution.Count == 0)
                             foreach (var point in currentConfig)
                                 solution.Add(point.Key, 0);
@@ -186,20 +161,14 @@ namespace MinesweeperSolver
                                 solution[point.Key]++;
 
                         totalConfigCount++;
-                        Console.WriteLine($"{d}DONE. Total solution number: {solution.Count}");
                     }
                     else
-                    {
-                        Console.WriteLine($"{d}Nope, there still are not fixed points. Constructing...");
                         SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1);
-                    }
                 }
             }
 
             for (int i = 0; i < neighborsToSolve.Count; i++)
                 currentConfig[neighborsToSolve[i]] = null;
-
-            Console.WriteLine($"{d}I'm done solving island point {currentPoint} out of {island.Count}");
         }
 
         private bool IsValidIslandConfig(List<Point> island, Dictionary<Point, bool?> islandConfig)
@@ -216,16 +185,10 @@ namespace MinesweeperSolver
 
                 int cellMines = ToInt(window.GetCellContents(islandPoint));
                 if (minesAround > cellMines)
-                {
-                    Console.WriteLine($"R: there are more mines around {PointToStr(islandPoint)} than it displays itself");
                     return false;
-                }
 
                 if (cellMines - minesAround > neighborsToSolve.Count)
-                {
-                    Console.WriteLine($"R: there are more mines around {PointToStr(islandPoint)} than solvable neighbors");
                     return false;
-                }
             }
             return true;
         }
@@ -390,14 +353,6 @@ namespace MinesweeperSolver
             foreach (var pair in solution)
                 s += $"\t{PointToStr(pair.Key)}: {pair.Value * 100}%\n";
             return s + "}";
-        }
-
-        private static string DepthToStr(int depth)
-        {
-            string s = "";
-            for (int i = 0; i < depth; i++)
-                s += ".";
-            return s + " ";
         }
     }
 }
