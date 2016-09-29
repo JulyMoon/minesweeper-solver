@@ -111,9 +111,7 @@ namespace MinesweeperSolver
             //   - a total number of configs
         {
             var islandPoint = island[currentPoint];
-            var neighbors = GetValidNeighbors(islandPoint);
-
-            var notOpenedNeighbors = neighbors.Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
+            var notOpenedNeighbors = GetValidNeighbors(islandPoint).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
             var fixedConfigNeighbors = notOpenedNeighbors.Intersect(currentConfig.Where(pair => pair.Value != null).Select(pair => pair.Key).ToList()).ToList();
             var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !fixedConfigNeighbors.Contains(neighbor)).ToList();
 
@@ -123,7 +121,7 @@ namespace MinesweeperSolver
             int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (fixedConfigNeighbors.Contains(neighbor) && (bool)currentConfig[neighbor]));
 
             if (adjustedMineCount > neighborsToSolve.Count)
-                ; // breakpoint
+                return; // may be not needed cuz validity check may be already checking this?
 
             foreach (var permutation in GetPermutations(adjustedMineCount, neighborsToSolve.Count))
             {
@@ -166,10 +164,17 @@ namespace MinesweeperSolver
         {
             foreach (var islandPoint in island)
             {
-                var neighbors = GetValidNeighbors(islandPoint).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened);
-                int minesAround = neighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (islandConfig.ContainsKey(neighbor) && (islandConfig[neighbor] ?? false)));
+                var notOpenedNeighbors = GetValidNeighbors(islandPoint).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened);
+                var fixedConfigNeighbors = notOpenedNeighbors.Intersect(islandConfig.Where(pair => pair.Value != null).Select(pair => pair.Key).ToList()).ToList();
+                var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !fixedConfigNeighbors.Contains(neighbor)).ToList();
 
-                if (minesAround > ToInt(window.GetCellContents(islandPoint)))
+                int minesAround = notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (fixedConfigNeighbors.Contains(neighbor) && (bool)islandConfig[neighbor]));
+
+                int cellMines = ToInt(window.GetCellContents(islandPoint));
+                if (minesAround > cellMines)
+                    return false;
+
+                if (cellMines - minesAround > neighborsToSolve.Count)
                     return false;
             }
             return true;
