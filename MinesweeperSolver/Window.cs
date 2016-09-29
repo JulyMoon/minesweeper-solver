@@ -154,7 +154,11 @@ namespace MinesweeperSolver
                 else
                 {
                     cells[x, y] = Cell.Opened;
-                    cellContents[x, y] = CellContents.Empty;
+
+                    if (screenshot.GetPixel(xx + mineSize / 2, yy + mineSize / 2 - 4) == Color.FromArgb(0, 0, 0))
+                        cellContents[x, y] = CellContents.Seven;
+                    else
+                        cellContents[x, y] = CellContents.Empty;
                 }
             }
             else if (color == Color.FromArgb(0, 0, 0))
@@ -185,10 +189,8 @@ namespace MinesweeperSolver
                     cellContents[x, y] = CellContents.Six;
                 else
                 {
-                    color = screenshot.GetPixel(xx + mineSize / 2, yy + mineSize / 2 + 1);
-                    if (color == Color.FromArgb(0, 0, 0))
-                        cellContents[x, y] = CellContents.Seven;
-                    else if (color == Color.FromArgb(128, 128, 128))
+                    color = screenshot.GetPixel(xx + mineSize / 2, yy + mineSize / 2 - 1);
+                    if (color == Color.FromArgb(128, 128, 128))
                         cellContents[x, y] = CellContents.Eight;
                     else
                     {
