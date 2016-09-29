@@ -72,7 +72,8 @@ namespace MinesweeperSolver
                 solution = solution.Concat(islandSolution).ToDictionary(pair => pair.Key, pair => pair.Value);
             }
 
-            Console.WriteLine($"Overall solution:\n{SolutionToStr(solution)}");
+            if (islands.Count > 1)
+                Console.WriteLine($"Overall solution:\n{SolutionToStr(solution)}");
 
             var minimalMineChanceCells = new List<Point>();
             var min = Double.MaxValue;
@@ -90,7 +91,9 @@ namespace MinesweeperSolver
                 }
             }
 
-            window.OpenCell(minimalMineChanceCells[random.Next(minimalMineChanceCells.Count)]);
+            var randomCell = minimalMineChanceCells[random.Next(minimalMineChanceCells.Count)];
+            Console.WriteLine($"Out of {minimalMineChanceCells.Count} minimal chance cells I chose {PointToStr(randomCell)}");
+            window.OpenCell(randomCell);
         }
 
         private Dictionary<Point, double> SolveIsland(List<Point> island)
@@ -111,14 +114,16 @@ namespace MinesweeperSolver
             var neighbors = GetValidNeighbors(islandPoint);
 
             var notOpenedNeighbors = neighbors.Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
-            var fixedConfigPoints = currentConfig.Where(pair => pair.Value != null).Select(pair => pair.Key).ToList();
-            var fixedConfigNeighbors = notOpenedNeighbors.Intersect(fixedConfigPoints).ToList();
+            var fixedConfigNeighbors = notOpenedNeighbors.Intersect(currentConfig.Where(pair => pair.Value != null).Select(pair => pair.Key).ToList()).ToList();
             var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !fixedConfigNeighbors.Contains(neighbor)).ToList();
 
             if (neighborsToSolve.Count == 0)
                 return;
 
             int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (fixedConfigNeighbors.Contains(neighbor) && (bool)currentConfig[neighbor]));
+
+            if (adjustedMineCount > neighborsToSolve.Count)
+                ; // breakpoint
 
             foreach (var permutation in GetPermutations(adjustedMineCount, neighborsToSolve.Count))
             {
@@ -202,14 +207,25 @@ namespace MinesweeperSolver
             var islands = new List<List<Point>>();
             foreach (var point in pointsToSolve)
             {
-                var islandsThisPointBelongsTo = new List<List<Point>>();
+                var islandsThisPointBelongsTo = new HashSet<List<Point>>();
                 foreach (var island in islands)
                     foreach (var islandPoint in island)
-                        if (GetValidNeighbors(islandPoint).Contains(point) && !islandsThisPointBelongsTo.Contains(island))
+                    {
+                        var pointNeighbors = GetValidNeighbors(point);
+                        
+                        if (pointNeighbors.Contains(islandPoint))
                         {
                             islandsThisPointBelongsTo.Add(island);
                             break;
                         }
+
+                        foreach (var neighbor in pointNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
+                            if (GetValidNeighbors(neighbor).Contains(islandPoint))
+                            {
+                                islandsThisPointBelongsTo.Add(island);
+                                break;
+                            }
+                    }
 
                 islands = islands.Except(islandsThisPointBelongsTo).ToList();
                 islands.Add(islandsThisPointBelongsTo.SelectMany(a => a).Concat(new List<Point> { point }).ToList());
