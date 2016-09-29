@@ -14,14 +14,6 @@ namespace MinesweeperSolver
                 if (pcs.MainWindowTitle == Console.Title && Process.GetCurrentProcess().Id != pcs.Id)
                 {
                     pcs.Kill();
-
-                    /*foreach (var pcs2 in Process.GetProcesses())
-                        if (pcs2.MainWindowTitle == "Minesweeper")
-                        {
-                            pcs2.Kill();
-                            break;
-                        }*/
-
                     return;
                 }
 
@@ -36,12 +28,14 @@ namespace MinesweeperSolver
 
             while (true)
             {
+                Console.Clear();
                 window.NewGame();
-                solver.Solve();
+                solver.Solve(true);
                 games++;
                 if (window.Win) wins++;
                 Console.Title = $"{wins}/{games} ({100d * wins / games}%)";
                 Console.WriteLine($"{(window.Win ? "win " : "lose")} ({solver.RisksTaken}, {solver.MinesFlagged})");
+                Console.ReadLine();
             }
         }
     }

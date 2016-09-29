@@ -29,13 +29,17 @@ namespace MinesweeperSolver
 
         public static Point operator -(Point a, Point b) => a + -b;
 
+        public static bool operator ==(Point a, Point b) => a.Equals(b);
+
+        public static bool operator !=(Point a, Point b) => !(a == b);
+
         public override bool Equals(object o) => Equals(o as Point);
 
         public bool Equals(Point p) => (X == p?.X) && (Y == p?.Y);
 
         public override int GetHashCode() => X ^ Y;
 
-        public static implicit operator string(Point a) => $"Point({a.X}, {a.Y})";
+        public static implicit operator string(Point a) => $"({a.X}, {a.Y})";
 
         public override string ToString() => this;
     }

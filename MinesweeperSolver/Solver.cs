@@ -11,18 +11,6 @@ namespace MinesweeperSolver
 {
     public class Solver
     {
-        /*private void PrintCell(int x, int y)
-        {
-            var cell = cells[x, y];
-            var s = $"cells[{x}, {y}] = {cell} | ";
-            if (cell == Cell.Opened)
-                s += $"cellContents[{x}, {y}] = {cellContents[x, y]}";
-            else
-                s += $"cellBombChance[{x}, {y}] = {cellBombChance[x, y]}";
-            Console.WriteLine(s);
-        }*/
-
-        //private double[,] cellBombChance;
         private Window window;
         private static readonly Random random = new Random();
         private static readonly Point[] pointNeighbors =
@@ -34,26 +22,16 @@ namespace MinesweeperSolver
         public Solver(Window window)
         {
             this.window = window;
-
-            /*cellBombChance = new double[window.FieldWidth, window.FieldHeight];
-            for (int x = 0; x < window.FieldWidth; x++)
-                for (int y = 0; y < window.FieldHeight; y++)
-                {
-                    cellBombChance[x, y] = -1;
-                }*/
         }
 
-        public void Solve()
+        public void Solve(bool newGame)
         {
             MinesFlagged = 0;
-            RisksTaken = -1; // -1 because the first click is never a risk
-            //Console.WriteLine("Starting to solve...");
-            SimpleAlgorithm();
-            //Console.WriteLine(window.Win ? "Yay! I won :D" : "Oops... I blew up :O");
-        }
+            RisksTaken = 0;
 
-        private void SimpleAlgorithm()
-        {
+            if (newGame)
+                window.OpenCell(random.Next(window.FieldWidth), random.Next(window.FieldHeight));
+            
             while (true)
             {
                 window.Update();
@@ -61,61 +39,309 @@ namespace MinesweeperSolver
                 if (window.GameOver)
                     break;
 
-                var change = false;
-                for (int x = 0; x < window.FieldWidth; x++)
-                    for (int y = 0; y < window.FieldHeight; y++)
-                        if (window.GetCell(x, y) == Window.Cell.Opened)
+                FlagAllObviousCells();
+
+                bool impact = OpenAllObviousCells();
+
+                if (!impact)
+                    TankAlgorithm();
+
+                Thread.Sleep(10); // may be not needed
+            }
+        }
+
+        private void TankAlgorithm()
+        {
+            var points = GetPointsToSolve();
+            if (points.Count == 0)
+                return;//throw new Exception();
+
+            var islands = GetIslands(points);
+            Console.WriteLine($"Found {islands.Count} islands");
+            var solution = new Dictionary<Point, double>();
+            int i = 0;
+            foreach (var island in islands)
+            {
+                Console.WriteLine($"Solving {++i}th island: {Output.ToString(island)}");
+                var islandSolution = SolveIsland(island);
+                Console.WriteLine($"{i}th island's solution:\n{Output.ToString(islandSolution)}");
+                solution = solution.Concat(islandSolution).ToDictionary(pair => pair.Key, pair => pair.Value);
+            }
+
+            if (islands.Count > 1)
+                Console.WriteLine($"Overall solution:\n{Output.ToString(solution)}");
+
+            FlagAllObviousCells(solution);
+            bool impact = OpenAllObviousCells(solution);
+
+            if (!impact)
+            {
+                double minChance;
+                var minimalMineChanceCells = GetMinimalMineChanceCells(solution, out minChance);
+                Console.WriteLine($"Opening a cell with a {minChance:P2} chance to blow up");  
+                OpenOneCellRandomly(minimalMineChanceCells);
+                RisksTaken++;
+            }
+        }
+
+        private static List<Point> GetMinimalMineChanceCells(Dictionary<Point, double> solution, out double minimalChance)
+        {
+            var minimalMineChanceCells = new List<Point>();
+            minimalChance = Double.MaxValue;
+            foreach (var key in solution.Keys)
+            {
+                if (solution[key] == minimalChance)
+                    minimalMineChanceCells.Add(key);
+                else if (solution[key] < minimalChance)
+                {
+                    minimalChance = solution[key];
+                    minimalMineChanceCells.Clear();
+                    minimalMineChanceCells.Add(key);
+                }
+            }
+            return minimalMineChanceCells;
+        }
+
+        private void OpenOneCellRandomly(List<Point> cells)
+            => window.OpenCell(cells[random.Next(cells.Count)]);
+
+        private Dictionary<Point, double> SolveIsland(List<Point> island)
+        {
+            int totalConfigCount = 0;
+            var solution = new Dictionary<Point, int>();
+            SolveIsland(ref solution, ref totalConfigCount, new Dictionary<Point, bool?>(), island, 0);
+            var result = solution.ToDictionary(pair => pair.Key, pair => (double)pair.Value / totalConfigCount);
+            return result;
+        }
+
+        private void SolveIsland(ref Dictionary<Point, int> solution, ref int totalConfigCount, Dictionary<Point, bool?> currentConfig, List<Point> island, int currentPoint)
+            // the solution consists of the following:
+            //   - a list of points and the number of mines that appeared in that point across all configs
+            //   - a total number of configs
+        {
+            var islandPoint = island[currentPoint];
+
+            var notOpenedNeighbors = GetValidNeighbors(islandPoint).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
+            var fixedConfigNeighbors = notOpenedNeighbors.Intersect(currentConfig.Where(pair => pair.Value != null).Select(pair => pair.Key).ToList()).ToList();
+            var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !fixedConfigNeighbors.Contains(neighbor)).ToList();
+
+            if (neighborsToSolve.Count == 0)
+            {
+                if (island.Count == currentPoint + 1)
+                {
+                    if (solution.Count == 0)
+                        foreach (var point in currentConfig)
+                            solution.Add(point.Key, 0);
+
+                    foreach (var point in currentConfig)
+                        if ((bool)point.Value)
+                            solution[point.Key]++;
+
+                    totalConfigCount++;
+                }
+                else
+                    SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1);
+                return;
+            }
+
+            int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (fixedConfigNeighbors.Contains(neighbor) && (bool)currentConfig[neighbor]));
+
+            foreach (var permutation in GetPermutations(adjustedMineCount, neighborsToSolve.Count))
+            {
+                for (int i = 0; i < neighborsToSolve.Count; i++)
+                {
+                    if (currentConfig.ContainsKey(neighborsToSolve[i]))
+                        currentConfig[neighborsToSolve[i]] = permutation[i];
+                    else
+                        currentConfig.Add(neighborsToSolve[i], permutation[i]);
+                }
+
+                if (IsValidIslandConfig(island, currentConfig))
+                {
+                    if (island.Count == currentPoint + 1)
+                    {
+                        if (solution.Count == 0)
+                            foreach (var point in currentConfig)
+                                solution.Add(point.Key, 0);
+
+                        foreach (var point in currentConfig)
+                            if ((bool)point.Value)
+                                solution[point.Key]++;
+
+                        totalConfigCount++;
+                    }
+                    else
+                        SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1);
+                }
+            }
+
+            for (int i = 0; i < neighborsToSolve.Count; i++)
+                currentConfig[neighborsToSolve[i]] = null;
+        }
+
+        private bool IsValidIslandConfig(List<Point> island, Dictionary<Point, bool?> islandConfig)
+            // incomplete configs CAN be valid because here valid only means that no number cell has more mines around it than its number
+            // note: island points are number cell points adjacent to islandConfig closed cell points
+        {
+            foreach (var islandPoint in island)
+            {
+                var notOpenedNeighbors = GetValidNeighbors(islandPoint).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened);
+                var fixedConfigNeighbors = notOpenedNeighbors.Intersect(islandConfig.Where(pair => pair.Value != null).Select(pair => pair.Key).ToList()).ToList();
+                var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !fixedConfigNeighbors.Contains(neighbor)).ToList();
+
+                int minesAround = notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (fixedConfigNeighbors.Contains(neighbor) && (bool)islandConfig[neighbor]));
+
+                int cellMines = ToInt(window.GetCellContents(islandPoint));
+                if (minesAround > cellMines)
+                    return false;
+
+                if (cellMines - minesAround > neighborsToSolve.Count)
+                    return false;
+            }
+            return true;
+        }
+
+        private static List<bool[]> GetPermutations(int trueCount, int count)
+        {
+            if (trueCount == 0)
+                return new List<bool[]> { Enumerable.Repeat(false, count).ToArray() };
+            else if (trueCount == count)
+                return new List<bool[]> { Enumerable.Repeat(true, count).ToArray() };
+            else
+            {
+                var permutations = new List<bool[]>();
+                bool append = true;
+                while (true)
+                {
+                    var a = GetPermutations(append ? trueCount - 1 : trueCount, count - 1);
+                    for (int i = 0; i < a.Count; i++)
+                        a[i] = new[] { append }.Concat(a[i]).ToArray();
+                    permutations = permutations.Concat(a).ToList();
+
+                    if (append)
+                        append = false;
+                    else
+                        break;
+                }
+
+                return permutations;
+            }
+        }
+
+        private List<List<Point>> GetIslands(List<Point> pointsToSolve)
+        {
+            var islands = new List<List<Point>>();
+            foreach (var point in pointsToSolve)
+            {
+                var islandsThisPointBelongsTo = new HashSet<List<Point>>();
+                foreach (var island in islands)
+                    foreach (var islandPoint in island)
+                    {
+                        bool pointBelongsToIsland = false;
+                        var pointNeighbors = GetValidNeighbors(point);
+                        
+                        if (pointNeighbors.Contains(islandPoint))
+                            pointBelongsToIsland = true;
+
+                        if (!pointBelongsToIsland)
+                            foreach (var neighbor in pointNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
+                                if (GetValidNeighbors(neighbor).Contains(islandPoint))
+                                {
+                                    pointBelongsToIsland = true;
+                                    break;
+                                }
+
+                        if (pointBelongsToIsland)
                         {
-                            var cc = window.GetCellContents(x, y);
-                            if (IsNumber(cc))
+                            islandsThisPointBelongsTo.Add(island);
+                            break;
+                        }
+                    }
+
+                islands = islands.Except(islandsThisPointBelongsTo).ToList();
+                islands.Add(islandsThisPointBelongsTo.SelectMany(a => a).Concat(new List<Point> { point }).ToList());
+            }
+            return islands;
+        }
+
+        private List<Point> GetPointsToSolve()
+        {
+            var pointsToSolve = new List<Point>();
+            for (int x = 0; x < window.FieldWidth; x++)
+                for (int y = 0; y < window.FieldHeight; y++)
+                    if (window.GetCell(x, y) == Window.Cell.Opened && IsNumber(window.GetCellContents(x, y))
+                        && GetValidNeighbors(new Point(x, y)).Any(neighbor => window.GetCell(neighbor.X, neighbor.Y) == Window.Cell.Closed))
+                    // ^ this is optimizable for sure (dont get all neighbors, get one then check then get another one)
+                    {
+                        pointsToSolve.Add(new Point(x, y));
+                    }
+            return pointsToSolve;
+        }
+
+        private void FlagAllObviousCells()
+        {
+            for (int x = 0; x < window.FieldWidth; x++)
+                for (int y = 0; y < window.FieldHeight; y++)
+                    if (window.GetCell(x, y) == Window.Cell.Opened)
+                    {
+                        var cc = window.GetCellContents(x, y);
+                        if (IsNumber(cc))
+                        {
+                            var notOpenedNeighbors = GetValidNeighbors(new Point(x, y)).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
+                            if (notOpenedNeighbors.Count == ToInt(cc))
+                                foreach (var neighbor in notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
+                                {
+                                    window.FlagCell(neighbor);
+                                    MinesFlagged++;
+                                }
+                        }
+                    }
+        }
+
+        private bool OpenAllObviousCells()
+        {
+            var impact = false;
+            for (int x = 0; x < window.FieldWidth; x++)
+                for (int y = 0; y < window.FieldHeight; y++)
+                    if (window.GetCell(x, y) == Window.Cell.Opened)
+                    {
+                        var cc = window.GetCellContents(x, y);
+                        if (IsNumber(cc))
+                        {
+                            var p = new Point(x, y);
+                            var neighbors = GetValidNeighbors(p);
+                            if (neighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged) == ToInt(cc)
+                                && neighbors.Any(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
                             {
-                                var notOpenedNeighbors = GetValidNeighbors(new Point(x, y)).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
-                                if (notOpenedNeighbors.Count == ToInt(cc))
-                                    foreach (var neighbor in notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
-                                    {
-                                        window.FlagCell(neighbor);
-                                        MinesFlagged++;
-                                        change = true;
-                                    }
+                                window.MassOpenCell(p);
+                                impact = true;
                             }
                         }
+                    }
 
-                if (change)
+            return impact;
+        }
+
+        private void FlagAllObviousCells(Dictionary<Point, double> solution)
+        {
+            foreach (var pair in solution)
+                if (pair.Value == 1)
                 {
-                    change = false;
-                    for (int x = 0; x < window.FieldWidth; x++)
-                        for (int y = 0; y < window.FieldHeight; y++)
-                            if (window.GetCell(x, y) == Window.Cell.Opened)
-                            {
-                                var cc = window.GetCellContents(x, y);
-                                var p = new Point(x, y);
-                                var neighbors = GetValidNeighbors(p);
-                                if (IsNumber(cc) && neighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged).Count() == ToInt(cc)
-                                    && neighbors.Any(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
-                                {
-                                    window.MassOpenCell(p);
-                                    change = true;
-                                }
-                            }
+                    window.FlagCell(pair.Key);
+                    MinesFlagged++;
                 }
+        }
 
-                if (!change)
+        private bool OpenAllObviousCells(Dictionary<Point, double> solution)
+        {
+            bool impact = false;
+            foreach (var pair in solution)
+                if (pair.Value == 0)
                 {
-                    var closedCells = new List<Point>();
-
-                    for (int x = 0; x < window.FieldWidth; x++)
-                        for (int y = 0; y < window.FieldHeight; y++)
-                            if (window.GetCell(x, y) == Window.Cell.Closed)
-                                closedCells.Add(new Point(x, y));
-
-                    var p = closedCells[random.Next(closedCells.Count)];
-
-                    window.OpenCell(p.X, p.Y);
-                    RisksTaken++;
+                    window.OpenCell(pair.Key);
+                    impact = true;
                 }
-
-                Thread.Sleep(10);
-            }
+            return impact;
         }
 
         private static bool IsNumber(Window.CellContents cc)
@@ -123,16 +349,6 @@ namespace MinesweeperSolver
 
         private static int ToInt(Window.CellContents cc)
             => cc - Window.CellContents.Empty;
-
-        /*private void UpdateChances()
-        {
-            for (int x = 0; x < window.FieldWidth; x++)
-                for (int y = 0; y < window.FieldHeight; y++)
-                    if (window.GetCell(x, y) == Window.Cell.Closed)
-                    {
-
-                    }
-        }*/
 
         private bool IsValid(Point p)
             => p.X >= 0 && p.X < window.FieldWidth && p.Y >= 0 && p.Y < window.FieldHeight;
