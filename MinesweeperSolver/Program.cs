@@ -36,6 +36,7 @@ namespace MinesweeperSolver
 
             while (true)
             {
+                Console.Clear();
                 window.NewGame();
                 solver.Solve(true);
                 games++;

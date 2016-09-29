@@ -110,20 +110,52 @@ namespace MinesweeperSolver
             //   - a list of points and the number of mines that appeared in that point across all configs
             //   - a total number of configs
         {
+            Console.WriteLine($"D{currentPoint} Solving island point {currentPoint} out of {island.Count}");
             var islandPoint = island[currentPoint];
+
+            Console.WriteLine($"D{currentPoint} Current point: {PointToStr(islandPoint)}");
+
             var notOpenedNeighbors = GetValidNeighbors(islandPoint).Where(neighbor => window.GetCell(neighbor) != Window.Cell.Opened).ToList();
             var fixedConfigNeighbors = notOpenedNeighbors.Intersect(currentConfig.Where(pair => pair.Value != null).Select(pair => pair.Key).ToList()).ToList();
             var neighborsToSolve = notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed && !fixedConfigNeighbors.Contains(neighbor)).ToList();
 
+            Console.WriteLine($"D{currentPoint} Neighbors to solve: {neighborsToSolve.Count}");
             if (neighborsToSolve.Count == 0)
+            {
+                Console.WriteLine($"D{currentPoint} Was that the last point?");
+                if (island.Count == currentPoint + 1)
+                {
+                    Console.WriteLine($"D{currentPoint} Yup. Config completed. Adding it to the solution...");
+                    if (solution.Count == 0) // may be not needed
+                        foreach (var point in currentConfig)
+                            solution.Add(point.Key, 0);
+
+                    foreach (var point in currentConfig)
+                        if ((bool)point.Value)
+                            solution[point.Key]++;
+
+                    totalConfigCount++;
+                    Console.WriteLine($"D{currentPoint} DONE. Total solution number: {solution.Count}");
+                }
+                else
+                {
+                    Console.WriteLine($"D{currentPoint} No it wasn't. Constructing...");
+                    SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1);
+                }
                 return;
+            }
 
             int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (fixedConfigNeighbors.Contains(neighbor) && (bool)currentConfig[neighbor]));
+
+            Console.WriteLine($"D{currentPoint} Adjusted mine count: {adjustedMineCount}");
 
             if (adjustedMineCount > neighborsToSolve.Count)
                 return; // may be not needed cuz validity check may be already checking this?
 
-            foreach (var permutation in GetPermutations(adjustedMineCount, neighborsToSolve.Count))
+            var permutations = GetPermutations(adjustedMineCount, neighborsToSolve.Count);
+
+            int j = 0;
+            foreach (var permutation in permutations)
             {
                 for (int i = 0; i < neighborsToSolve.Count; i++)
                 {
@@ -132,11 +164,15 @@ namespace MinesweeperSolver
                     else
                         currentConfig.Add(neighborsToSolve[i], permutation[i]);
                 }
-                
+
+                Console.Write($"D{currentPoint} Just applied {++j}th perm out of {permutations.Count}\nD{currentPoint} Is this perm good? ");
+
                 if (IsValidIslandConfig(island, currentConfig))
                 {
+                    Console.WriteLine($"YES\nD{currentPoint} But is it enough to complete the config?");
                     if (island.Count == currentPoint + 1)
                     {
+                        Console.WriteLine($"D{currentPoint} Yup. Config completed. Adding it to the solution...");
                         if (solution.Count == 0)
                             foreach (var point in currentConfig)
                                 solution.Add(point.Key, 0);
@@ -146,16 +182,23 @@ namespace MinesweeperSolver
                                 solution[point.Key]++;
 
                         totalConfigCount++;
+                        Console.WriteLine($"D{currentPoint} DONE. Total solution number: {solution.Count}");
                     }
                     else
+                    {
+                        Console.WriteLine($"D{currentPoint} Nope, there still are not fixed points. Constructing...");
                         SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1);
+                    }
                 }
                 else
                 {
+                    Console.WriteLine($"NO, THIS PERM IS TRASH. Unapplying...");
                     for (int i = 0; i < neighborsToSolve.Count; i++)
                         currentConfig[neighborsToSolve[i]] = null;
                 }
             }
+
+            Console.WriteLine($"D{currentPoint} I'm done solving island point {currentPoint} out of {island.Count}");
         }
 
         private bool IsValidIslandConfig(List<Point> island, Dictionary<Point, bool?> islandConfig)
