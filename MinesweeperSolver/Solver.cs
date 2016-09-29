@@ -44,10 +44,7 @@ namespace MinesweeperSolver
                 bool impact = OpenAllObviousCells();
 
                 if (!impact)
-                {
                     TankAlgorithm();
-                    RisksTaken++;
-                }
 
                 Thread.Sleep(10); // may be not needed
             }
@@ -65,34 +62,43 @@ namespace MinesweeperSolver
             int i = 0;
             foreach (var island in islands)
             {
-                Console.WriteLine($"Solving {++i}th island: {PointListToStr(island)}");
+                Console.WriteLine($"Solving {++i}th island: {Output.ToString(island)}");
                 var islandSolution = SolveIsland(island);
-                Console.WriteLine($"{i}th island's solution:\n{SolutionToStr(islandSolution)}");
+                Console.WriteLine($"{i}th island's solution:\n{Output.ToString(islandSolution)}");
                 solution = solution.Concat(islandSolution).ToDictionary(pair => pair.Key, pair => pair.Value);
             }
 
             if (islands.Count > 1)
-                Console.WriteLine($"Overall solution:\n{SolutionToStr(solution)}");
+                Console.WriteLine($"Overall solution:\n{Output.ToString(solution)}");
 
+            double minChance;
+            var minimalMineChanceCells = GetMinimalMineChanceCells(solution, out minChance);
+            Console.WriteLine($"Opening a cell with a {minChance:P2} chance to blow up");
+            if (minChance > 0)
+                RisksTaken++;
+            OpenOneCellRandomly(minimalMineChanceCells);
+        }
+
+        private static List<Point> GetMinimalMineChanceCells(Dictionary<Point, double> solution, out double minimalChance)
+        {
             var minimalMineChanceCells = new List<Point>();
-            var min = Double.MaxValue;
+            minimalChance = Double.MaxValue;
             foreach (var key in solution.Keys)
             {
-                if (solution[key] == min)
-                {
+                if (solution[key] == minimalChance)
                     minimalMineChanceCells.Add(key);
-                }
-                else if (solution[key] < min)
+                else if (solution[key] < minimalChance)
                 {
-                    min = solution[key];
+                    minimalChance = solution[key];
                     minimalMineChanceCells.Clear();
                     minimalMineChanceCells.Add(key);
                 }
             }
-
-            var randomCell = minimalMineChanceCells[random.Next(minimalMineChanceCells.Count)];
-            window.OpenCell(randomCell);
+            return minimalMineChanceCells;
         }
+
+        private void OpenOneCellRandomly(List<Point> cells)
+            => window.OpenCell(cells[random.Next(cells.Count)]);
 
         private Dictionary<Point, double> SolveIsland(List<Point> island)
         {
@@ -333,26 +339,6 @@ namespace MinesweeperSolver
                     neighbors.Add(n);
             }
             return neighbors;
-        }
-
-        private static string PointListToStr(List<Point> island)
-        {
-            string s = "[";
-            foreach (var point in island.Take(island.Count - 1))
-                s += $"{PointToStr(point)}, ";
-            if (island.Count > 0)
-                s += $"{PointToStr(island.Last())}]";
-            return s;
-        }
-
-        private static string PointToStr(Point p) => $"({p.X}, {p.Y})";
-
-        private static string SolutionToStr(Dictionary<Point, double> solution)
-        {
-            string s = "{\n";
-            foreach (var pair in solution)
-                s += $"\t{PointToStr(pair.Key)}: {pair.Value * 100}%\n";
-            return s + "}";
         }
     }
 }

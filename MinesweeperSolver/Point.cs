@@ -39,7 +39,7 @@ namespace MinesweeperSolver
 
         public override int GetHashCode() => X ^ Y;
 
-        public static implicit operator string(Point a) => $"Point({a.X}, {a.Y})";
+        public static implicit operator string(Point a) => $"({a.X}, {a.Y})";
 
         public override string ToString() => this;
     }
