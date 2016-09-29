@@ -63,17 +63,17 @@ namespace MinesweeperSolver
             foreach (var island in islands)
             {
                 Console.WriteLine($"Solving the {(++i).WithSuffix()} island out of {islands.Count} with a size of {island.Count}");
-                Console.WriteLine($"The {i.WithSuffix()} island's solution found");
                 solution = solution.Concat(SolveIsland(island)).ToDictionary(pair => pair.Key, pair => pair.Value);
+                Console.WriteLine($"The {i.WithSuffix()} island's solution found");
             }
 
             Console.Write("Flagging all obvious cells...");
-            FlagAllObviousCells(solution);
-            Console.WriteLine(" Done");
+            bool impact = FlagAllObviousCells(solution);
+            Console.WriteLine($" Done with{(impact ? "" : " no")} impact");
 
             Console.Write("Opening all obvious cells...");
-            bool impact = OpenAllObviousCells(solution);
-            Console.WriteLine($" Done with{(impact ? "" : " no")} impact");
+            impact = OpenAllObviousCells(solution);
+            Console.WriteLine($" Done with{(impact ? " impact\n" : " no impact")}");
 
             if (!impact)
             {
@@ -279,8 +279,9 @@ namespace MinesweeperSolver
             return pointsToSolve;
         }
 
-        private void FlagAllObviousCells()
+        private bool FlagAllObviousCells()
         {
+            bool impact = false;
             for (int x = 0; x < window.FieldWidth; x++)
                 for (int y = 0; y < window.FieldHeight; y++)
                     if (window.GetCell(x, y) == Window.Cell.Opened)
@@ -294,9 +295,11 @@ namespace MinesweeperSolver
                                 {
                                     window.FlagCell(neighbor);
                                     MinesFlagged++;
+                                    impact = true;
                                 }
                         }
                     }
+            return impact;
         }
 
         private bool OpenAllObviousCells()
@@ -323,14 +326,17 @@ namespace MinesweeperSolver
             return impact;
         }
 
-        private void FlagAllObviousCells(Dictionary<Point, double> solution)
+        private bool FlagAllObviousCells(Dictionary<Point, double> solution)
         {
+            bool impact = false;
             foreach (var pair in solution)
                 if (pair.Value == 1)
                 {
                     window.FlagCell(pair.Key);
                     MinesFlagged++;
+                    impact = true;
                 }
+            return impact;
         }
 
         private bool OpenAllObviousCells(Dictionary<Point, double> solution)
