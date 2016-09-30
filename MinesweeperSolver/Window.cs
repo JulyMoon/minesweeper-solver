@@ -19,7 +19,19 @@ namespace MinesweeperSolver
         private const int widthExcess = 26;
         private const int heightExcess = 112;
         private const string windowTitle = "Minesweeper";
-        
+
+        private const int x1 = 6, y1 = 2, // these are red numbers' part coordinates
+                          x2 = 2, y2 = 7, // relative to their top-left corner
+                          x3 = 10, y3 = 7,
+                          x4 = 6, y4 = 11,
+                          x5 = 2, y5 = 17,
+                          x6 = 10, y6 = 17,
+                          x7 = 6, y7 = 20;
+
+        private const int redNumberX = 19;
+        private const int redNumberY = 63;
+        private const int redNumberWidth = 13;
+
         private Rectangle bounds;
         private Rectangle fieldBounds;
         private Bitmap screenshot;
@@ -30,7 +42,7 @@ namespace MinesweeperSolver
 
         public int FieldWidth { get; private set; }
         public int FieldHeight { get; private set; }
-        public int BombCount { get; private set; }
+        public int MineCount { get; private set; } = -1;
         public bool GameOver { get; private set; }
         public bool Win { get; private set; }
 
@@ -124,22 +136,71 @@ namespace MinesweeperSolver
                 for (int j = 0; j < FieldHeight; j++)
                 {
                     cells[i, j] = Cell.Closed;
-                    cellContents[i, j] = CellContents.Bomb; // Kappa
+                    cellContents[i, j] = CellContents.Mine; // Kappa
                 }
         }
 
         private void ReadScreenshot()
+        {
+            if (MineCount == -1)
+            {
+                ReadMineCount();
+                Console.WriteLine($"Mines: {MineCount}");
+            }
+
+            ReadGameover();
+
+            for (int x = 0; x < FieldWidth; x++)
+                for (int y = 0; y < FieldHeight; y++)
+                    ReadCell(x, y);
+        }
+
+        private void ReadGameover()
         {
             if (screenshot.GetPixel(bounds.Width / 2 - 2, 72) == Color.FromArgb(0, 0, 0))
             {
                 GameOver = true;
                 Win = screenshot.GetPixel(bounds.Width / 2 - 4, 73) == Color.FromArgb(0, 0, 0);
             }
-
-            for (int x = 0; x < FieldWidth; x++)
-                for (int y = 0; y < FieldHeight; y++)
-                    ReadCell(x, y);
         }
+
+        private void ReadMineCount()
+        {
+            var number = ReadRedNumber(redNumberX, redNumberY) +
+                         ReadRedNumber(redNumberX + redNumberWidth, redNumberY) +
+                         ReadRedNumber(redNumberX + redNumberWidth * 2, redNumberY);
+
+            MineCount = Int32.Parse(number);
+        }
+
+        private string ReadRedNumber(int x, int y)
+        {
+            bool part1 = IsRed(x + x1, y + y1),
+                 part2 = IsRed(x + x2, y + y2),
+                 part3 = IsRed(x + x3, y + y3),
+                 part4 = IsRed(x + x4, y + y4),
+                 part5 = IsRed(x + x5, y + y5),
+                 part6 = IsRed(x + x6, y + y6),
+                 part7 = IsRed(x + x7, y + y7);
+
+            // dayum this is some ugly shit LUL :^)
+
+            if (part1 && part2 && part3 && !part4 && part5 && part6 && part7) return "0";
+            if (!part1 && !part2 && part3 && !part4 && !part5 && part6 && !part7) return "1";
+            if (part1 && !part2 && part3 && part4 && part5 && !part6 && part7) return "2";
+            if (part1 && !part2 && part3 && part4 && !part5 && part6 && part7) return "3";
+            if (!part1 && part2 && part3 && part4 && !part5 && part6 && !part7) return "4";
+            if (part1 && part2 && !part3 && part4 && !part5 && part6 && part7) return "5";
+            if (part1 && part2 && !part3 && part4 && part5 && part6 && part7) return "6";
+            if (part1 && !part2 && part3 && !part4 && !part5 && part6 && !part7) return "7";
+            if (part1 && part2 && part3 && part4 && part5 && part6 && part7) return "8";
+            if (part1 && part2 && part3 && part4 && !part5 && part6 && part7) return "9";
+
+            throw new Exception("Couldn't recognize the number");
+        }
+
+        private bool IsRed(int x, int y)
+            => screenshot.GetPixel(x, y) == Color.FromArgb(255, 0, 0);
 
         private void ReadCell(int x, int y)
         {
@@ -168,7 +229,7 @@ namespace MinesweeperSolver
                 else
                 {
                     cells[x, y] = Cell.Opened;
-                    cellContents[x, y] = CellContents.Bomb;
+                    cellContents[x, y] = CellContents.Mine;
                 }
             }
             else
@@ -206,7 +267,6 @@ namespace MinesweeperSolver
 
         private Bitmap TakeScreenshot(bool save)
         {
-            //Thread.Sleep(10);
             var bmp = new Bitmap(bounds.Width, bounds.Height);
             using (var gfx = Graphics.FromImage(bmp))
                 gfx.CopyFromScreen(new System.Drawing.Point(bounds.Left, bounds.Top), System.Drawing.Point.Empty, bounds.Size);
@@ -267,16 +327,13 @@ namespace MinesweeperSolver
 
         public enum CellContents
         {
-            Empty, One, Two, Three, Four, Five, Six, Seven, Eight, Bomb
+            Empty, One, Two, Three, Four, Five, Six, Seven, Eight, Mine
         }
 
         public enum Cell
         {
             Opened, Closed, Flagged
         }
-
-        //[DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        //public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 
         private const int SW_SHOWNORMAL = 1;
         private const int SW_SHOWMAXIMIZED = 3;
