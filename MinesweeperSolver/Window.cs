@@ -66,14 +66,11 @@ namespace MinesweeperSolver
             Initialize();
             Console.WriteLine($"W: {FieldWidth}, H: {FieldHeight}");
             Thread.Sleep(200);
-            //NewGame();
-            //Thread.Sleep(200);
-            //Update();
         }
 
         public void FlagCell(Point p) => FlagCell(p.X, p.Y);
         public void OpenCell(Point p) => OpenCell(p.X, p.Y);
-        public void MassOpenCell(Point p) => MassOpenCell(p.X, p.Y);
+        public void MassOpenCell(Point p) => ChordCell(p.X, p.Y);
         public Cell GetCell(Point p) => GetCell(p.X, p.Y);
         public CellContents GetCellContents(Point p) => GetCellContents(p.X, p.Y);
 
@@ -90,7 +87,7 @@ namespace MinesweeperSolver
             Mouse.LeftClick();
         }
 
-        public void MassOpenCell(int x, int y)
+        public void ChordCell(int x, int y)
         {
             SetMouseOverCell(x, y);
             Mouse.DoubleButtonClick();

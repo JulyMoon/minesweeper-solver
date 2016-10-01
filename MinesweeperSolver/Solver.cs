@@ -44,19 +44,17 @@ namespace MinesweeperSolver
                 bool impact = OpenAllObviousCells();
 
                 if (!impact)
-                    TankAlgorithm();
-
-                Thread.Sleep(10); // may be not needed
+                    SolveIslands();
             }
         }
 
-        private void TankAlgorithm()
+        private void SolveIslands()
         {
-            var points = GetPointsToSolve();
-            if (points.Count == 0)
+            var borderCells = GetBorderCells();
+            if (borderCells.Count == 0)
                 return;//throw new Exception();
 
-            var islands = GetIslands(points);
+            var islands = GetIslands(borderCells);
             Console.WriteLine($"Found {islands.Count} island{(islands.Count > 1 ? "s" : "")}");
             var solution = new Dictionary<Point, double>();
             int i = 0;
@@ -110,15 +108,12 @@ namespace MinesweeperSolver
         {
             int totalConfigCount = 0;
             var solution = new Dictionary<Point, int>();
-            SolveIsland(ref solution, ref totalConfigCount, new Dictionary<Point, bool?>(), island, 0);
+            SolveIsland(ref solution, ref totalConfigCount, new Dictionary<Point, bool?>(), island, 0, window.MineCount - MinesFlagged);
             var result = solution.ToDictionary(pair => pair.Key, pair => (double)pair.Value / totalConfigCount);
             return result;
         }
 
-        private void SolveIsland(ref Dictionary<Point, int> solution, ref int totalConfigCount, Dictionary<Point, bool?> currentConfig, List<Point> island, int currentPoint)
-            // the solution consists of the following:
-            //   - a list of points and the number of mines that appeared in that point across all configs
-            //   - a total number of configs
+        private void SolveIsland(ref Dictionary<Point, int> solution, ref int totalConfigCount, Dictionary<Point, bool?> currentConfig, List<Point> island, int currentPoint, int availableMineCount)
         {
             var islandPoint = island[currentPoint];
 
@@ -141,11 +136,14 @@ namespace MinesweeperSolver
                     totalConfigCount++;
                 }
                 else
-                    SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1);
+                    SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1, availableMineCount);
                 return;
             }
 
             int adjustedMineCount = ToInt(window.GetCellContents(islandPoint)) - notOpenedNeighbors.Count(neighbor => window.GetCell(neighbor) == Window.Cell.Flagged || (fixedConfigNeighbors.Contains(neighbor) && (bool)currentConfig[neighbor]));
+
+            if (adjustedMineCount > availableMineCount)
+                return;
 
             foreach (var permutation in GetPermutations(adjustedMineCount, neighborsToSolve.Count))
             {
@@ -172,7 +170,7 @@ namespace MinesweeperSolver
                         totalConfigCount++;
                     }
                     else
-                        SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1);
+                        SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1, availableMineCount - adjustedMineCount);
                 }
             }
 
@@ -265,18 +263,18 @@ namespace MinesweeperSolver
             return islands;
         }
 
-        private List<Point> GetPointsToSolve()
+        private List<Point> GetBorderCells() // a border cell is a cell next to a number cell
         {
-            var pointsToSolve = new List<Point>();
+            var borderCells = new List<Point>();
             for (int x = 0; x < window.FieldWidth; x++)
                 for (int y = 0; y < window.FieldHeight; y++)
                     if (window.GetCell(x, y) == Window.Cell.Opened && IsNumber(window.GetCellContents(x, y))
                         && GetValidNeighbors(new Point(x, y)).Any(neighbor => window.GetCell(neighbor.X, neighbor.Y) == Window.Cell.Closed))
                     // ^ this is optimizable for sure (dont get all neighbors, get one then check then get another one)
                     {
-                        pointsToSolve.Add(new Point(x, y));
+                        borderCells.Add(new Point(x, y));
                     }
-            return pointsToSolve;
+            return borderCells;
         }
 
         private bool FlagAllObviousCells()
