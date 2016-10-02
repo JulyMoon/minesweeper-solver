@@ -7,6 +7,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+// todo: 1. don't solve islands you already solved in the past
+//       2. check if flagging all obvious solution cells can impact opening all obvious cells (not solution based)
+
 namespace MinesweeperSolver
 {
     public class Solver
@@ -17,7 +20,7 @@ namespace MinesweeperSolver
             { Point.Up, Point.Down, Point.Left, Point.Right, Point.TopLeft, Point.TopRight, Point.BottomLeft, Point.BottomRight };
 
         public int RisksTaken { get; private set; }
-        public int MinesFlagged { get; private set; }
+        public int MinesLeft { get; private set; }
 
         public Solver(Window window)
         {
@@ -26,7 +29,7 @@ namespace MinesweeperSolver
 
         public void Solve(bool newGame)
         {
-            MinesFlagged = 0;
+            MinesLeft = window.MineCount;
             RisksTaken = 0;
 
             if (newGame)
@@ -35,14 +38,11 @@ namespace MinesweeperSolver
             while (true)
             {
                 window.Update();
-
                 if (window.GameOver)
                     break;
 
                 FlagAllObviousCells();
-
                 bool impact = OpenAllObviousCells();
-
                 if (!impact)
                     SolveIslands();
             }
@@ -52,7 +52,18 @@ namespace MinesweeperSolver
         {
             var borderCells = GetBorderCells();
             if (borderCells.Count == 0)
-                return;//throw new Exception();
+            {
+                var nonBorderCells = GetNonBorderCells();
+                double chanceToBlowUp = (double)MinesLeft / nonBorderCells.Count;
+                if (chanceToBlowUp > 0)
+                {
+                    Console.WriteLine($"Opening a non-border cell with a {chanceToBlowUp:P2} chance to blow up\n");
+                    RisksTaken++;
+                }
+
+                OpenOneCellRandomly(nonBorderCells);
+                return;
+            }
 
             var islands = GetIslands(borderCells);
             Console.WriteLine($"Found {islands.Count} island{(islands.Count > 1 ? "s" : "")}");
@@ -77,7 +88,7 @@ namespace MinesweeperSolver
             {
                 double minChance;
                 var minimalMineChanceCells = GetMinimalMineChanceCells(solution, out minChance);
-                Console.WriteLine($"Opening a cell with a {minChance:P2} chance to blow up\n");  
+                Console.WriteLine($"Opening a cell with a {minChance:P2} chance to blow up\n");
                 OpenOneCellRandomly(minimalMineChanceCells);
                 RisksTaken++;
             }
@@ -108,7 +119,7 @@ namespace MinesweeperSolver
         {
             int totalConfigCount = 0;
             var solution = new Dictionary<Point, int>();
-            SolveIsland(ref solution, ref totalConfigCount, new Dictionary<Point, bool?>(), island, 0, window.MineCount - MinesFlagged);
+            SolveIsland(ref solution, ref totalConfigCount, new Dictionary<Point, bool?>(), island, 0, MinesLeft);
             var result = solution.ToDictionary(pair => pair.Key, pair => (double)pair.Value / totalConfigCount);
             return result;
         }
@@ -277,6 +288,20 @@ namespace MinesweeperSolver
             return borderCells;
         }
 
+        private List<Point> GetNonBorderCells()
+        {
+            var nonBorderCells = new List<Point>();
+            for (int x = 0; x < window.FieldWidth; x++)
+                for (int y = 0; y < window.FieldHeight; y++)
+                    if (window.GetCell(x, y) != Window.Cell.Opened
+                        && GetValidNeighbors(new Point(x, y)).All(neighbor => window.GetCell(neighbor.X, neighbor.Y) != Window.Cell.Opened))
+                    // ^ this is optimizable for sure (dont get all neighbors, get one then check then get another one)
+                    {
+                        nonBorderCells.Add(new Point(x, y));
+                    }
+            return nonBorderCells;
+        }
+
         private bool FlagAllObviousCells()
         {
             bool impact = false;
@@ -292,7 +317,7 @@ namespace MinesweeperSolver
                                 foreach (var neighbor in notOpenedNeighbors.Where(neighbor => window.GetCell(neighbor) == Window.Cell.Closed))
                                 {
                                     window.FlagCell(neighbor);
-                                    MinesFlagged++;
+                                    MinesLeft--;
                                     impact = true;
                                 }
                         }
@@ -331,7 +356,7 @@ namespace MinesweeperSolver
                 if (pair.Value == 1)
                 {
                     window.FlagCell(pair.Key);
-                    MinesFlagged++;
+                    MinesLeft--;
                     impact = true;
                 }
             return impact;

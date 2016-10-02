@@ -30,7 +30,7 @@ namespace MinesweeperSolver
                 games++;
                 if (window.Win) wins++;
                 Console.Title = $"{wins}/{games} ({(double)wins / games:P4})";
-                Console.WriteLine($"{(window.Win ? "win " : "lose")} ({solver.RisksTaken}, {solver.MinesFlagged})");
+                Console.WriteLine($"{(window.Win ? "win " : "lose")} ({solver.RisksTaken}, {solver.MinesLeft})");
             }
         }
     }

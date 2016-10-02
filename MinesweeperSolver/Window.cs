@@ -95,6 +95,7 @@ namespace MinesweeperSolver
 
         public void Update()
         {
+            Thread.Sleep(20);
             screenshot = TakeScreenshot(false);
             ReadScreenshot();
         }
