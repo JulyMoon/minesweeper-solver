@@ -33,7 +33,7 @@ namespace MinesweeperSolver
             RisksTaken = 0;
 
             if (newGame)
-                window.OpenCell(random.Next(window.FieldWidth), random.Next(window.FieldHeight));
+                window.OpenCell(window.FieldWidth / 2, window.FieldHeight / 2);
             
             while (true)
             {
