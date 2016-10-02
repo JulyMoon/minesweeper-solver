@@ -66,6 +66,9 @@ namespace MinesweeperSolver
             Initialize();
             Console.WriteLine($"W: {FieldWidth}, H: {FieldHeight}");
             Thread.Sleep(200);
+            screenshot = TakeScreenshot(false);
+            ReadMineCount();
+            Console.WriteLine($"Mines: {MineCount}");
         }
 
         public void FlagCell(Point p) => FlagCell(p.X, p.Y);
@@ -140,12 +143,6 @@ namespace MinesweeperSolver
 
         private void ReadScreenshot()
         {
-            if (MineCount == -1)
-            {
-                ReadMineCount();
-                Console.WriteLine($"Mines: {MineCount}");
-            }
-
             ReadGameover();
 
             for (int x = 0; x < FieldWidth; x++)
