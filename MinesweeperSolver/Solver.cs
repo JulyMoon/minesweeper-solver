@@ -8,7 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 
 // todo: 1. don't solve islands you already solved in the past
-//       2. check if flagging all obvious solution cells can impact opening all obvious cells (not solution based)
+//       2. when given a choice between cells with equal chances to blow up choose the one whose opening might reveal more info
+//          (the once closer to the center maybe?)
 
 namespace MinesweeperSolver
 {
@@ -41,9 +42,10 @@ namespace MinesweeperSolver
                 if (window.GameOver)
                     break;
 
-                FlagAllObviousCells();
-                bool impact = OpenAllObviousCells();
-                if (!impact)
+                bool newFlags = FlagAllObviousCells();
+                bool newOpenedCells = OpenAllObviousCells();
+
+                if (!newOpenedCells)
                     SolveIslands();
             }
         }
@@ -77,14 +79,14 @@ namespace MinesweeperSolver
             }
 
             Console.Write("Flagging all obvious cells...");
-            bool impact = FlagAllObviousCells(solution);
-            Console.WriteLine($" Done with{(impact ? "" : " no")} impact");
+            bool newFlags = FlagAllObviousCells(solution);
+            Console.WriteLine($" Done with{(newFlags ? "" : " no")} impact");
 
             Console.Write("Opening all obvious cells...");
-            impact = OpenAllObviousCells(solution);
-            Console.WriteLine($" Done with{(impact ? " impact\n" : " no impact")}");
+            bool newOpenedCells = OpenAllObviousCells(solution);
+            Console.WriteLine($" Done with{(newOpenedCells ? " impact\n" : " no impact")}");
 
-            if (!impact)
+            if (!newOpenedCells)
             {
                 double minChance;
                 var minimalMineChanceCells = GetMinimalMineChanceCells(solution, out minChance);
