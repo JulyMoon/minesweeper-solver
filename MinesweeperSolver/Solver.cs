@@ -91,12 +91,48 @@ namespace MinesweeperSolver
 
             if (!newOpenedCells)
             {
-                double minChance;
-                var minimalMineChanceCells = GetMinimalMineChanceCells(cellMineChances, out minChance);
-                Console.WriteLine($"Opening a cell with a {minChance:P2} chance to blow up\n");
-                OpenOneCellRandomly(minimalMineChanceCells);
-                RisksTaken++;
+                var nonBorderCells = GetNonBorderCells();
+                double nonBorderCellMineChance = -1;
+                if (nonBorderCells.Count > 0)
+                {
+                    int lowestBorderCellMineCount = GetTheLowestPossibleMineCountUsed(allIslandConfigs);
+                    int minesLeftForNonBorderCells = MinesLeft - lowestBorderCellMineCount;
+                    nonBorderCellMineChance = (double)minesLeftForNonBorderCells / (window.FieldWidth * window.FieldHeight);
+                }
+
+                double borderMinChance;
+                var minimalMineChanceBorderCells = GetMinimalMineChanceCells(cellMineChances, out borderMinChance);
+
+                if (nonBorderCells.Count > 0 && nonBorderCellMineChance <= borderMinChance)
+                {
+                    Console.WriteLine($"Opening a non-border cell with a {nonBorderCellMineChance:P2} chance to blow up\n");
+                    OpenOneCellRandomly(nonBorderCells);
+                    RisksTaken++;
+                }
+                else
+                {
+                    Console.WriteLine($"Opening a border cell with a {borderMinChance:P2} chance to blow up\n");
+                    OpenOneCellRandomly(minimalMineChanceBorderCells);
+                    RisksTaken++;
+                }
             }
+        }
+
+        private int GetTheLowestPossibleMineCountUsed(List<List<Dictionary<Point, bool>>> multipleIslandConfigs)
+        {
+            int count = 0;
+            foreach (var islandConfigs in multipleIslandConfigs)
+            {
+                int min = Int32.MaxValue;
+                foreach (var config in islandConfigs)
+                {
+                    int configMineCount = config.Count(pair => pair.Value);
+                    if (configMineCount < min)
+                        min = configMineCount;
+                }
+                count += min;
+            }
+            return count;
         }
 
         private Dictionary<Point, double> GetMineChances(List<Dictionary<Point, bool>> islandConfigs)
