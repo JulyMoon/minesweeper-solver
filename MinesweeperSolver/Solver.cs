@@ -69,31 +69,43 @@ namespace MinesweeperSolver
 
             var islands = GetIslands(borderCells);
             Console.WriteLine($"Found {islands.Count} island{(islands.Count > 1 ? "s" : "")}");
-            var solution = new Dictionary<Point, double>();
+            var cellMineChances = new Dictionary<Point, double>();
             int i = 0;
             foreach (var island in islands)
             {
                 Console.WriteLine($"Solving the {(++i).WithSuffix()} island out of {islands.Count} with a size of {island.Count}");
-                solution = solution.Concat(SolveIsland(island)).ToDictionary(pair => pair.Key, pair => pair.Value);
+                cellMineChances = cellMineChances.Concat(GetMineChances(GetAllPossibleIslandConfigs(island))).ToDictionary(pair => pair.Key, pair => pair.Value);
                 Console.WriteLine($"The {i.WithSuffix()} island's solution found");
             }
 
             Console.Write("Flagging all obvious cells...");
-            bool newFlags = FlagAllObviousCells(solution);
+            bool newFlags = FlagAllObviousCells(cellMineChances);
             Console.WriteLine($" Done with{(newFlags ? "" : " no")} impact");
 
             Console.Write("Opening all obvious cells...");
-            bool newOpenedCells = OpenAllObviousCells(solution);
+            bool newOpenedCells = OpenAllObviousCells(cellMineChances);
             Console.WriteLine($" Done with{(newOpenedCells ? " impact\n" : " no impact")}");
 
             if (!newOpenedCells)
             {
                 double minChance;
-                var minimalMineChanceCells = GetMinimalMineChanceCells(solution, out minChance);
+                var minimalMineChanceCells = GetMinimalMineChanceCells(cellMineChances, out minChance);
                 Console.WriteLine($"Opening a cell with a {minChance:P2} chance to blow up\n");
                 OpenOneCellRandomly(minimalMineChanceCells);
                 RisksTaken++;
             }
+        }
+
+        private Dictionary<Point, double> GetMineChances(List<Dictionary<Point, bool>> configs)
+        {
+            var cellMineConfigCount = configs.First().ToDictionary(pair => pair.Key, pair => 0);
+
+            foreach (var config in configs)
+                foreach (var pair in config)
+                    if (pair.Value)
+                        cellMineConfigCount[pair.Key]++;
+
+            return cellMineConfigCount.ToDictionary(pair => pair.Key, pair => (double)pair.Value / configs.Count);
         }
 
         private static List<Point> GetMinimalMineChanceCells(Dictionary<Point, double> solution, out double minimalChance)
@@ -117,16 +129,14 @@ namespace MinesweeperSolver
         private void OpenOneCellRandomly(List<Point> cells)
             => window.OpenCell(cells[random.Next(cells.Count)]);
 
-        private Dictionary<Point, double> SolveIsland(List<Point> island)
+        private List<Dictionary<Point, bool>> GetAllPossibleIslandConfigs(List<Point> island)
         {
-            int totalConfigCount = 0;
-            var solution = new Dictionary<Point, int>();
-            SolveIsland(ref solution, ref totalConfigCount, new Dictionary<Point, bool?>(), island, 0, MinesLeft);
-            var result = solution.ToDictionary(pair => pair.Key, pair => (double)pair.Value / totalConfigCount);
-            return result;
+            var configs = new List<Dictionary<Point, bool>>();
+            GetAllPossibleIslandConfigs(ref configs, new Dictionary<Point, bool?>(), island, 0, MinesLeft);
+            return configs;
         }
 
-        private void SolveIsland(ref Dictionary<Point, int> solution, ref int totalConfigCount, Dictionary<Point, bool?> currentConfig, List<Point> island, int currentPoint, int availableMineCount)
+        private void GetAllPossibleIslandConfigs(ref List<Dictionary<Point, bool>> configs, Dictionary<Point, bool?> currentConfig, List<Point> island, int currentPoint, int availableMineCount)
         {
             var islandPoint = island[currentPoint];
 
@@ -137,19 +147,9 @@ namespace MinesweeperSolver
             if (neighborsToSolve.Count == 0)
             {
                 if (island.Count == currentPoint + 1)
-                {
-                    if (solution.Count == 0)
-                        foreach (var point in currentConfig)
-                            solution.Add(point.Key, 0);
-
-                    foreach (var point in currentConfig)
-                        if ((bool)point.Value)
-                            solution[point.Key]++;
-
-                    totalConfigCount++;
-                }
+                    configs.Add(currentConfig.ToDictionary(pair => pair.Key, pair => (bool)pair.Value));
                 else
-                    SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1, availableMineCount);
+                    GetAllPossibleIslandConfigs(ref configs, currentConfig, island, currentPoint + 1, availableMineCount);
                 return;
             }
 
@@ -171,19 +171,9 @@ namespace MinesweeperSolver
                 if (IsValidIslandConfig(island, currentConfig))
                 {
                     if (island.Count == currentPoint + 1)
-                    {
-                        if (solution.Count == 0)
-                            foreach (var point in currentConfig)
-                                solution.Add(point.Key, 0);
-
-                        foreach (var point in currentConfig)
-                            if ((bool)point.Value)
-                                solution[point.Key]++;
-
-                        totalConfigCount++;
-                    }
+                        configs.Add(currentConfig.ToDictionary(pair => pair.Key, pair => (bool)pair.Value));
                     else
-                        SolveIsland(ref solution, ref totalConfigCount, currentConfig, island, currentPoint + 1, availableMineCount - adjustedMineCount);
+                        GetAllPossibleIslandConfigs(ref configs, currentConfig, island, currentPoint + 1, availableMineCount - adjustedMineCount);
                 }
             }
 
