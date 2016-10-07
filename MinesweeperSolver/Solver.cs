@@ -52,18 +52,21 @@ namespace MinesweeperSolver
 
         private void SolveIslands()
         {
+            List<Point> nonBorderCells;
             var borderCells = GetBorderCells();
             if (borderCells.Count == 0)
             {
-                var nonBorderCells = GetNonBorderCells();
+                nonBorderCells = GetNonBorderCells();
                 double chanceToBlowUp = (double)MinesLeft / nonBorderCells.Count;
                 if (chanceToBlowUp > 0)
                 {
                     Console.WriteLine($"Opening a non-border cell with a {chanceToBlowUp:P2} chance to blow up\n");
                     RisksTaken++;
+                    OpenOneCellRandomly(nonBorderCells);
                 }
+                else
+                    OpenCells(nonBorderCells);
 
-                OpenOneCellRandomly(nonBorderCells);
                 return;
             }
 
@@ -89,33 +92,39 @@ namespace MinesweeperSolver
             bool newOpenedCells = OpenAllObviousCells(cellMineChances);
             Console.WriteLine($" Done with{(newOpenedCells ? " impact\n" : " no impact")}");
 
-            if (!newOpenedCells)
+            if (newOpenedCells)
+                return;
+
+            double nonBorderCellMineChance = -1;
+            nonBorderCells = GetNonBorderCells();
+            if (nonBorderCells.Count > 0)
             {
-                var nonBorderCells = GetNonBorderCells();
-                double nonBorderCellMineChance = -1;
-                if (nonBorderCells.Count > 0)
-                {
-                    int lowestBorderCellMineCount = GetTheLowestPossibleMineCountUsed(allIslandConfigs);
-                    int minesLeftForNonBorderCells = MinesLeft - lowestBorderCellMineCount;
-                    nonBorderCellMineChance = (double)minesLeftForNonBorderCells / (window.FieldWidth * window.FieldHeight);
-                }
+                int lowestBorderCellMineCount = GetTheLowestPossibleMineCountUsed(allIslandConfigs);
+                int minesLeftForNonBorderCells = MinesLeft - lowestBorderCellMineCount;
+                nonBorderCellMineChance = (double)minesLeftForNonBorderCells / (window.FieldWidth * window.FieldHeight);
 
-                double borderMinChance;
-                var minimalMineChanceBorderCells = GetMinimalMineChanceCells(cellMineChances, out borderMinChance);
-
-                if (nonBorderCells.Count > 0 && nonBorderCellMineChance <= borderMinChance)
+                if (nonBorderCellMineChance == 0)
                 {
-                    Console.WriteLine($"Opening a non-border cell with a {nonBorderCellMineChance:P2} chance to blow up\n");
-                    OpenOneCellRandomly(nonBorderCells);
-                    RisksTaken++;
-                }
-                else
-                {
-                    Console.WriteLine($"Opening a border cell with a {borderMinChance:P2} chance to blow up\n");
-                    OpenOneCellRandomly(minimalMineChanceBorderCells);
-                    RisksTaken++;
+                    OpenCells(nonBorderCells);
+                    return;
                 }
             }
+
+            double borderMinChance;
+            var minimalMineChanceBorderCells = GetMinimalMineChanceCells(cellMineChances, out borderMinChance);
+
+            if (nonBorderCells.Count > 0 && nonBorderCellMineChance <= borderMinChance)
+            {
+                Console.WriteLine($"Opening a non-border cell with a {nonBorderCellMineChance:P2} chance to blow up\n");
+                OpenOneCellRandomly(nonBorderCells);
+            }
+            else
+            {
+                Console.WriteLine($"Opening a border cell with a {borderMinChance:P2} chance to blow up\n");
+                OpenOneCellRandomly(minimalMineChanceBorderCells);
+            }
+
+            RisksTaken++;
         }
 
         private int GetTheLowestPossibleMineCountUsed(List<List<Dictionary<Point, bool>>> multipleIslandConfigs)
@@ -170,6 +179,9 @@ namespace MinesweeperSolver
 
         private void OpenOneCellRandomly(List<Point> cells)
             => window.OpenCell(cells[random.Next(cells.Count)]);
+
+        private void OpenCells(List<Point> cells)
+            => cells.ForEach(point => window.OpenCell(point));
 
         private List<Dictionary<Point, bool>> GetAllPossibleIslandConfigs(List<Point> island)
         {
