@@ -69,14 +69,17 @@ namespace MinesweeperSolver
 
             var islands = GetIslands(borderCells);
             Console.WriteLine($"Found {islands.Count} island{(islands.Count > 1 ? "s" : "")}");
-            var cellMineChances = new Dictionary<Point, double>();
+            var allIslandConfigs = new List<List<Dictionary<Point, bool>>>();
+
             int i = 0;
             foreach (var island in islands)
             {
                 Console.WriteLine($"Solving the {(++i).WithSuffix()} island out of {islands.Count} with a size of {island.Count}");
-                cellMineChances = cellMineChances.Concat(GetMineChances(GetAllPossibleIslandConfigs(island))).ToDictionary(pair => pair.Key, pair => pair.Value);
-                Console.WriteLine($"The {i.WithSuffix()} island's solution found");
+                allIslandConfigs.Add(GetAllPossibleIslandConfigs(island));
+                Console.WriteLine($"Calculated all the possible configs of the {i.WithSuffix()} island");
             }
+
+            var cellMineChances = GetMineChances(allIslandConfigs);
 
             Console.Write("Flagging all obvious cells...");
             bool newFlags = FlagAllObviousCells(cellMineChances);
@@ -96,17 +99,20 @@ namespace MinesweeperSolver
             }
         }
 
-        private Dictionary<Point, double> GetMineChances(List<Dictionary<Point, bool>> configs)
+        private Dictionary<Point, double> GetMineChances(List<Dictionary<Point, bool>> islandConfigs)
         {
-            var cellMineConfigCount = configs.First().ToDictionary(pair => pair.Key, pair => 0);
+            var cellMineConfigCount = islandConfigs.First().ToDictionary(pair => pair.Key, pair => 0);
 
-            foreach (var config in configs)
+            foreach (var config in islandConfigs)
                 foreach (var pair in config)
                     if (pair.Value)
                         cellMineConfigCount[pair.Key]++;
 
-            return cellMineConfigCount.ToDictionary(pair => pair.Key, pair => (double)pair.Value / configs.Count);
+            return cellMineConfigCount.ToDictionary(pair => pair.Key, pair => (double)pair.Value / islandConfigs.Count);
         }
+
+        private Dictionary<Point, double> GetMineChances(List<List<Dictionary<Point, bool>>> multipleIslandConfigs)
+            => multipleIslandConfigs.SelectMany(oneIslandConfigs => GetMineChances(oneIslandConfigs)).ToDictionary(pair => pair.Key, pair => pair.Value);
 
         private static List<Point> GetMinimalMineChanceCells(Dictionary<Point, double> solution, out double minimalChance)
         {
